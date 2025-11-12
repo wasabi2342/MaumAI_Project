@@ -67,10 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appTheme.green_50,
+      appBar: CustomTopAppBar(),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -94,35 +94,6 @@ class _HomeScreenState extends State<HomeScreen> {
         activeRoute: AppRoutes.homeScreen,
       ),
       // ^-- 이 부분이 추가됩니다. --^
-    );
-  }
-
-  /// 상단 헤더
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      height: 48.h,
-      color: appTheme.green_50,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.eco,
-            size: 28.h,
-            color: appTheme.teal_400,
-          ),
-          SizedBox(width: 5.h),
-          Text(
-            '베란다 농부',
-            style: TextStyle(
-              color: appTheme.teal_400,
-              fontSize: 13.25.fSize,
-              fontFamily: 'Cafe24 Ssurround OTF',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

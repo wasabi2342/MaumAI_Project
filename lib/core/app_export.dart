@@ -31,3 +31,4 @@ export '../widgets/custom_image_view.dart';
 export '../widgets/custom_text_form_field.dart';
 export '../widgets/custom_dropdown.dart';
 export '../widgets/custom_bottom_nav_bar.dart';
+export '../widgets/custom_top_app_bar.dart';
