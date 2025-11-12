@@ -1,0 +1,5 @@
+package com.example.veranda_farmer
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
