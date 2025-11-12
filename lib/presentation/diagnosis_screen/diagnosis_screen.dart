@@ -1,3 +1,4 @@
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
@@ -126,10 +127,15 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                 ),
               ),
             ),
-            _buildBottomNavigation(),
+            // _buildBottomNavigation(), // <-- 이 부분이 삭제됩니다.
           ],
         ),
       ),
+      // v-- 이 부분이 추가됩니다. --v
+      bottomNavigationBar: CustomBottomNavBar(
+        activeRoute: AppRoutes.diagnosisScreen,
+      ),
+      // ^-- 이 부분이 추가됩니다. --^
     );
   }
 
@@ -397,7 +403,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(
                   4,
-                  (index) => Column(
+                      (index) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -500,7 +506,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(
                   3,
-                  (index) => Column(
+                      (index) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -692,7 +698,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               itemCount: _faqItems.length,
               itemBuilder: (context, index) {
                 return Padding(
-                  padding: EdgeInsets.only(bottom: index < _faqItems.length - 1 ? 12.h : 0),
+                  padding: EdgeInsets.only(
+                      bottom: index < _faqItems.length - 1 ? 12.h : 0),
                   child: InkWell(
                     onTap: () {
                       // FAQ 상세보기
@@ -739,74 +746,10 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     );
   }
 
-  /// 하단 네비게이션
-  Widget _buildBottomNavigation() {
-    return Container(
-      height: 70.h,
-      decoration: BoxDecoration(
-        color: appTheme.white_A700,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.h),
-          topRight: Radius.circular(20.h),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.color66D3D3,
-            blurRadius: 8.h,
-            offset: Offset(0, -4.h),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _buildNavItem('홈', Icons.home, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.homeScreen);
-          }),
-          _buildNavItem('다이어리', Icons.book, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.diaryScreen);
-          }),
-          _buildNavItem('진단', Icons.medical_services, true, null),
-          _buildNavItem('제어', Icons.settings, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.controlScreen);
-          }),
-        ],
-      ),
-    );
-  }
-
-  /// 네비게이션 아이템
-  Widget _buildNavItem(String label, IconData icon, bool isSelected, VoidCallback? onTap) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 70.h,
-          color: appTheme.white_A700,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24.h,
-                color: isSelected ? appTheme.blue_gray_700 : appTheme.blue_gray_100,
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? appTheme.blue_gray_700 : appTheme.blue_gray_100,
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+// v-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --v
+// Widget _buildBottomNavigation() { ... }
+// Widget _buildNavItem(String label, IconData icon, bool isSelected, VoidCallback? onTap) { ... }
+// ^-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --^
 }
 
 /// 진단 결과 데이터 모델

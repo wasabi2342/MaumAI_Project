@@ -1,3 +1,4 @@
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -312,10 +313,15 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 ),
               ),
             ),
-            _buildBottomNavigation(),
+            // _buildBottomNavigation(), // <-- 이 부분이 삭제됩니다.
           ],
         ),
       ),
+      // v-- 이 부분이 추가됩니다. --v
+      bottomNavigationBar: CustomBottomNavBar(
+        activeRoute: AppRoutes.diaryScreen,
+      ),
+      // ^-- 이 부분이 추가됩니다. --^
     );
   }
 
@@ -611,13 +617,16 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
   /// 달력 그리드
   Widget _buildCalendarGrid() {
-    final firstDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
-    final lastDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+    final firstDayOfMonth =
+    DateTime(_currentMonth.year, _currentMonth.month, 1);
+    final lastDayOfMonth =
+    DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
     final firstWeekday = firstDayOfMonth.weekday % 7; // 0: 일요일, 6: 토요일
     final daysInMonth = lastDayOfMonth.day;
 
     // 이전 달 마지막 날짜
-    final lastDayOfPrevMonth = DateTime(_currentMonth.year, _currentMonth.month, 0).day;
+    final lastDayOfPrevMonth =
+        DateTime(_currentMonth.year, _currentMonth.month, 0).day;
 
     List<Widget> dayWidgets = [];
 
@@ -659,8 +668,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
         for (int week = 0; week < 6; week++)
           Row(
             children: [
-              for (int day = 0; day < 7; day++)
-                dayWidgets[week * 7 + day],
+              for (int day = 0; day < 7; day++) dayWidgets[week * 7 + day],
             ],
           ),
       ],
@@ -730,86 +738,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 하단 네비게이션
-  Widget _buildBottomNavigation() {
-    return Container(
-      height: 70.h,
-      decoration: BoxDecoration(
-        color: appTheme.white_A700,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.h),
-          topRight: Radius.circular(20.h),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.color66D3D3,
-            blurRadius: 8.h,
-            offset: Offset(0, -4.h),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _buildNavItem('홈', Icons.home, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.homeScreen);
-          }),
-          _buildNavItem('다이어리', Icons.book, true, null),
-          _buildNavItem('진단', Icons.medical_services, false, () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('진단 기능은 준비중입니다.'),
-                backgroundColor: appTheme.teal_400,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }),
-          _buildNavItem('제어', Icons.settings, false, () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('제어 기능은 준비중입니다.'),
-                backgroundColor: appTheme.teal_400,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  /// 네비게이션 아이템
-  Widget _buildNavItem(String label, IconData icon, bool isSelected, VoidCallback? onTap) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 70.h,
-          color: appTheme.white_A700,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24.h,
-                color: isSelected ? appTheme.blue_gray_700 : appTheme.blue_gray_100,
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? appTheme.blue_gray_700 : appTheme.blue_gray_100,
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+// v-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --v
+// Widget _buildBottomNavigation() { ... }
+// Widget _buildNavItem(String label, IconData icon, bool isSelected, VoidCallback? onTap) { ... }
+// ^-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --^
 }
 
 /// 다이어리 데이터 모델

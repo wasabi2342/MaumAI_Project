@@ -1,3 +1,4 @@
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
@@ -84,10 +85,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            _buildBottomNavigation(),
+            // _buildBottomNavigation(), // <-- 이 부분이 삭제됩니다.
           ],
         ),
       ),
+      // v-- 이 부분이 추가됩니다. --v
+      bottomNavigationBar: CustomBottomNavBar(
+        activeRoute: AppRoutes.homeScreen,
+      ),
+      // ^-- 이 부분이 추가됩니다. --^
     );
   }
 
@@ -168,7 +174,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 4.h),
+                    padding:
+                    EdgeInsets.symmetric(horizontal: 10.h, vertical: 4.h),
                     decoration: BoxDecoration(
                       color: Color(0xFFD6F6DD),
                       borderRadius: BorderRadius.circular(50.h),
@@ -200,7 +207,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       SizedBox(width: 8.h),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 4.h),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10.h, vertical: 4.h),
                         decoration: BoxDecoration(
                           color: appTheme.blue_gray_700,
                           borderRadius: BorderRadius.circular(50.h),
@@ -271,18 +279,25 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: EdgeInsets.symmetric(horizontal: 16.h),
       child: Row(
         children: [
-          Expanded(child: _buildSensorCard('온도', '${_sensorData.temperature} ℃', '22 ℃ ~ 22 ℃', SensorStatus.normal)),
+          Expanded(
+              child: _buildSensorCard('온도', '${_sensorData.temperature} ℃',
+                  '22 ℃ ~ 22 ℃', SensorStatus.normal)),
           SizedBox(width: 9.h),
-          Expanded(child: _buildSensorCard('습도', '${_sensorData.humidity} %', '59 % ~ 59 %', SensorStatus.danger)),
+          Expanded(
+              child: _buildSensorCard('습도', '${_sensorData.humidity} %',
+                  '59 % ~ 59 %', SensorStatus.danger)),
           SizedBox(width: 9.h),
-          Expanded(child: _buildSensorCard('조도', '${_sensorData.illuminance} lux', '59 % ~ 59 %', SensorStatus.warning)),
+          Expanded(
+              child: _buildSensorCard('조도', '${_sensorData.illuminance} lux',
+                  '59 % ~ 59 %', SensorStatus.warning)),
         ],
       ),
     );
   }
 
   /// 개별 센서 카드
-  Widget _buildSensorCard(String label, String value, String optimalRange, SensorStatus status) {
+  Widget _buildSensorCard(
+      String label, String value, String optimalRange, SensorStatus status) {
     Color statusColor;
     String statusText;
 
@@ -418,9 +433,16 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.symmetric(horizontal: 16.h),
             child: Row(
               children: [
-                Expanded(child: _buildBottomSensorCard('Co2', '${_sensorData.co2} ppm', '430 ppm ~ 430 ppm', SensorStatus.normal)),
+                Expanded(
+                    child: _buildBottomSensorCard('Co2', '${_sensorData.co2} ppm',
+                        '430 ppm ~ 430 ppm', SensorStatus.normal)),
                 SizedBox(width: 9.h),
-                Expanded(child: _buildBottomSensorCard('EC', '${_sensorData.ec} mS/cm', '430 ppm ~ 430 ppm', SensorStatus.warning)),
+                Expanded(
+                    child: _buildBottomSensorCard(
+                        'EC',
+                        '${_sensorData.ec} mS/cm',
+                        '430 ppm ~ 430 ppm',
+                        SensorStatus.warning)),
               ],
             ),
           ),
@@ -434,7 +456,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// 하단 센서 카드 (Co2, EC)
-  Widget _buildBottomSensorCard(String label, String value, String optimalRange, SensorStatus status) {
+  Widget _buildBottomSensorCard(
+      String label, String value, String optimalRange, SensorStatus status) {
     Color statusColor;
     String statusText;
 
@@ -621,74 +644,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 하단 네비게이션
-  Widget _buildBottomNavigation() {
-    return Container(
-      height: 70.h,
-      decoration: BoxDecoration(
-        color: appTheme.white_A700,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.h),
-          topRight: Radius.circular(20.h),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.color66D3D3,
-            blurRadius: 8.h,
-            offset: Offset(0, -4.h),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _buildNavItem('홈', Icons.home, true, null), // 이미 홈 화면이므로 null
-          _buildNavItem('다이어리', Icons.book, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.diaryScreen);
-          }),
-          _buildNavItem('진단', Icons.medical_services, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.diagnosisScreen);
-          }),
-          _buildNavItem('제어', Icons.settings, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.controlScreen);
-          }),
-        ],
-      ),
-    );
-  }
-
-  /// 네비게이션 아이템
-  Widget _buildNavItem(String label, IconData icon, bool isSelected, VoidCallback? onTap) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 70.h,
-          color: appTheme.white_A700,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24.h,
-                color: isSelected ? appTheme.blue_gray_700 : appTheme.blue_gray_100,
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? appTheme.blue_gray_700 : appTheme.blue_gray_100,
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+// v-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --v
+// Widget _buildBottomNavigation() { ... }
+// Widget _buildNavItem(String label, IconData icon, bool isSelected, VoidCallback? onTap) { ... }
+// ^-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --^
 }
 
 /// 센서 데이터 모델
@@ -710,9 +669,9 @@ class SensorData {
 
 /// 센서 상태
 enum SensorStatus {
-  normal,   // 정상
-  warning,  // 주의
-  danger,   // 위험
+  normal, // 정상
+  warning, // 주의
+  danger, // 위험
 }
 
 /// 식물 상태 팝업

@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_export.dart';
@@ -80,10 +82,15 @@ class _ControlScreenState extends State<ControlScreen>
                 ],
               ),
             ),
-            _buildBottomNavigation(),
+            // _buildBottomNavigation(), // <-- 이 부분이 삭제됩니다.
           ],
         ),
       ),
+      // v-- 이 부분이 추가됩니다. --v
+      bottomNavigationBar: CustomBottomNavBar(
+        activeRoute: AppRoutes.controlScreen,
+      ),
+      // ^-- 이 부분이 추가됩니다. --^
     );
   }
 
@@ -233,13 +240,13 @@ class _ControlScreenState extends State<ControlScreen>
         decoration: BoxDecoration(
           gradient: isSelected
               ? LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    appTheme.green_200,
-                    appTheme.green_200.withOpacity(0),
-                  ],
-                )
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              appTheme.green_200,
+              appTheme.green_200.withOpacity(0),
+            ],
+          )
               : null,
           color: isSelected ? null : appTheme.blue_gray_100,
           borderRadius: BorderRadius.only(
@@ -283,7 +290,7 @@ class _ControlScreenState extends State<ControlScreen>
               '물 순환 펌프',
               _isPumpOn ? '작동중' : '정지',
               _isPumpOn,
-              (value) {
+                  (value) {
                 setState(() {
                   _isPumpOn = value;
                 });
@@ -294,7 +301,7 @@ class _ControlScreenState extends State<ControlScreen>
               '환기팬',
               _isFanOn ? '켜짐' : '꺼짐',
               _isFanOn,
-              (value) {
+                  (value) {
                 setState(() {
                   _isFanOn = value;
                 });
@@ -311,11 +318,11 @@ class _ControlScreenState extends State<ControlScreen>
 
   /// 장치 카드 (펌프, 환기팬)
   Widget _buildDeviceCard(
-    String title,
-    String status,
-    bool isOn,
-    Function(bool) onChanged,
-  ) {
+      String title,
+      String status,
+      bool isOn,
+      Function(bool) onChanged,
+      ) {
     return Container(
       width: double.infinity,
       height: 75.h,
@@ -468,10 +475,10 @@ class _ControlScreenState extends State<ControlScreen>
                     value: _ledBrightness,
                     onChanged: _isLedOn
                         ? (value) {
-                            setState(() {
-                              _ledBrightness = value;
-                            });
-                          }
+                      setState(() {
+                        _ledBrightness = value;
+                      });
+                    }
                         : null,
                     min: 0,
                     max: 1,
@@ -499,13 +506,13 @@ class _ControlScreenState extends State<ControlScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: List.generate(
                     _ledColors.length,
-                    (index) => GestureDetector(
+                        (index) => GestureDetector(
                       onTap: _isLedOn
                           ? () {
-                              setState(() {
-                                _selectedColorIndex = index;
-                              });
-                            }
+                        setState(() {
+                          _selectedColorIndex = index;
+                        });
+                      }
                           : null,
                       child: Container(
                         width: 31.h,
@@ -515,9 +522,9 @@ class _ControlScreenState extends State<ControlScreen>
                           shape: BoxShape.circle,
                           border: _selectedColorIndex == index
                               ? Border.all(
-                                  color: appTheme.green_200,
-                                  width: 2,
-                                )
+                            color: appTheme.green_200,
+                            width: 2,
+                          )
                               : null,
                         ),
                       ),
@@ -640,75 +647,6 @@ class _ControlScreenState extends State<ControlScreen>
               color: value ? appTheme.teal_400 : appTheme.white_A700,
               shape: BoxShape.circle,
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 하단 네비게이션
-  Widget _buildBottomNavigation() {
-    return Container(
-      height: 70.h,
-      decoration: BoxDecoration(
-        color: appTheme.white_A700,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.h),
-          topRight: Radius.circular(20.h),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.color66D3D3,
-            blurRadius: 8.h,
-            offset: Offset(0, -4.h),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _buildNavItem('홈', Icons.home, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.homeScreen);
-          }),
-          _buildNavItem('다이어리', Icons.book, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.diaryScreen);
-          }),
-          _buildNavItem('진단', Icons.medical_services, false, () {
-            Navigator.pushReplacementNamed(context, AppRoutes.diagnosisScreen);
-          }),
-          _buildNavItem('제어', Icons.settings, true, null),
-        ],
-      ),
-    );
-  }
-
-  /// 네비게이션 아이템
-  Widget _buildNavItem(String label, IconData icon, bool isSelected, VoidCallback? onTap) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 70.h,
-          color: appTheme.white_A700,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24.h,
-                color: isSelected ? appTheme.blue_gray_700 : appTheme.blue_gray_100,
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? appTheme.blue_gray_700 : appTheme.blue_gray_100,
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-              ),
-            ],
           ),
         ),
       ),
