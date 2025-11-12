@@ -9,6 +9,8 @@ import '../presentation/device_selection_screen/device_selection_screen.dart';
 import '../presentation/plant_selection_screen/plant_selection_screen.dart';
 import '../presentation/home_screen/home_screen.dart';
 import '../presentation/diary_screen/diary_screen.dart';
+import '../presentation/diagnosis_screen/diagnosis_screen.dart';
+import '../presentation/control_screen/control_screen.dart';
 import '../presentation/app_navigation_screen/app_navigation_screen.dart';
 
 /// Application routes configuration
@@ -27,6 +29,8 @@ class AppRoutes {
   static const String plantSelectionScreen = '/plant_selection_screen';
   static const String homeScreen = '/home_screen';
   static const String diaryScreen = '/diary_screen';
+  static const String diagnosisScreen = '/diagnosis_screen';
+  static const String controlScreen = '/control_screen';
   static const String appNavigationScreen = '/app_navigation_screen';
 
   /// Route map
@@ -41,6 +45,8 @@ class AppRoutes {
     plantSelectionScreen: (context) => const PlantSelectionScreen(),
     homeScreen: (context) => const HomeScreen(),
     diaryScreen: (context) => const DiaryScreen(),
+    diagnosisScreen: (context) => const DiagnosisScreen(),
+    controlScreen: (context) => const ControlScreen(),
     appNavigationScreen: (context) => const AppNavigationScreen(),
   };
 }
