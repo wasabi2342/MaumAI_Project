@@ -228,8 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
             bottom: 17.h,
             child: InkWell(
               onTap: () {
-                // TODO: 식물 변경 화면으로 이동
-                // Navigator.pushNamed(context, AppRoutes.plantSelectionScreen);
+                Navigator.pushNamed(context, AppRoutes.plantSelectionScreen);
               },
               child: Container(
                 width: 185.h,
@@ -647,22 +646,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.pushReplacementNamed(context, AppRoutes.diaryScreen);
           }),
           _buildNavItem('진단', Icons.medical_services, false, () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('진단 기능은 준비중입니다.'),
-                backgroundColor: appTheme.teal_400,
-                duration: Duration(seconds: 2),
-              ),
-            );
+            Navigator.pushReplacementNamed(context, AppRoutes.diagnosisScreen);
           }),
           _buildNavItem('제어', Icons.settings, false, () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('제어 기능은 준비중입니다.'),
-                backgroundColor: appTheme.teal_400,
-                duration: Duration(seconds: 2),
-              ),
-            );
+            Navigator.pushReplacementNamed(context, AppRoutes.controlScreen);
           }),
         ],
       ),
