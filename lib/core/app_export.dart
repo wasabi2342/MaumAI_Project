@@ -20,6 +20,8 @@ export '../presentation/device_selection_screen/device_selection_screen.dart';
 export '../presentation/plant_selection_screen/plant_selection_screen.dart';
 export '../presentation/home_screen/home_screen.dart';
 export '../presentation/diary_screen/diary_screen.dart';
+export '../presentation/diagnosis_screen/diagnosis_screen.dart';
+export '../presentation/control_screen/control_screen.dart';
 export '../presentation/app_navigation_screen/app_navigation_screen.dart';
 
 // Widgets
