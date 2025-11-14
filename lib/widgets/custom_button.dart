@@ -8,7 +8,7 @@ import './custom_image_view.dart';
  *
  * Features:
  * - Customizable background colors and text colors
- * - Optional left icon support
+ * - Optional left icon support with adjustable icon size
  * - Configurable padding, margin, and dimensions
  * - Built-in shadow effects and border radius
  * - Responsive design with SizeUtils integration
@@ -18,6 +18,7 @@ import './custom_image_view.dart';
  * @param backgroundColor - Button background color
  * @param textColor - Text color
  * @param leftIcon - Optional left icon path
+ * @param iconSize - Optional icon size (default: 24.h)
  * @param width - Button width
  * @param height - Button height
  * @param padding - Internal padding
@@ -35,6 +36,7 @@ class CustomButton extends StatelessWidget {
     this.backgroundColor,
     this.textColor,
     this.leftIcon,
+    this.iconSize,
     this.width,
     this.height,
     this.padding,
@@ -59,6 +61,9 @@ class CustomButton extends StatelessWidget {
 
   /// Left icon image path
   final String? leftIcon;
+
+  /// Left icon size
+  final double? iconSize;
 
   /// Button width
   final double? width;
@@ -87,10 +92,13 @@ class CustomButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double effectiveBorderRadius = borderRadius ?? 18.h;
+    final double effectiveHeight = height ?? 48.h;
+    // 버튼 높이에 따라 아이콘 크기 자동 조정 (버튼 높이의 55%)
+    final double effectiveIconSize = iconSize ?? (effectiveHeight * 0.55);
 
     return Container(
       width: width,
-      height: height ?? 48.h,
+      height: effectiveHeight,
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(effectiveBorderRadius),
@@ -125,10 +133,13 @@ class CustomButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (leftIcon != null) ...[
-              CustomImageView(
-                imagePath: leftIcon!,
-                height: 24.h,
-                width: 24.h,
+              Container(
+                height: effectiveIconSize,
+                child: CustomImageView(
+                  imagePath: leftIcon!,
+                  height: effectiveIconSize,
+                  fit: BoxFit.contain, // 비율 유지하며 잘리지 않도록
+                ),
               ),
               SizedBox(width: 8.h),
             ],

@@ -77,7 +77,7 @@ class _CustomDropdownState extends State<CustomDropdown> {
         child: CompositedTransformFollower(
           link: _layerLink,
           showWhenUnlinked: false,
-          offset: Offset(0.0, size.height),
+          offset: Offset(0.0, size.height - 1), // 메인 버튼과 겹치도록 1px 올림
           child: Material(
             elevation: 0,
             color: Colors.transparent,
@@ -125,9 +125,9 @@ class _CustomDropdownState extends State<CustomDropdown> {
           color: appTheme.white_A700,
           borderRadius: isLast
               ? BorderRadius.only(
-                  bottomLeft: Radius.circular(widget.borderRadius ?? 20.h),
-                  bottomRight: Radius.circular(widget.borderRadius ?? 20.h),
-                )
+            bottomLeft: Radius.circular(widget.borderRadius ?? 20.h),
+            bottomRight: Radius.circular(widget.borderRadius ?? 20.h),
+          )
               : null,
         ),
         child: Row(
@@ -139,22 +139,14 @@ class _CustomDropdownState extends State<CustomDropdown> {
                 color: isSelected ? appTheme.gray_800 : Color(0xFF797979),
               ),
             ),
-            if (isSelected)
-              Container(
-                width: 18.h,
-                height: 18.h,
-                decoration: BoxDecoration(
-                  color: appTheme.green_50,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.check,
-                    size: 12.h,
-                    color: appTheme.teal_400,
-                  ),
-                ),
+            Container(
+              width: 18.h,
+              height: 18.h,
+              decoration: BoxDecoration(
+                color: isSelected ? appTheme.teal_400 : appTheme.green_50,
+                shape: BoxShape.circle,
               ),
+            ),
           ],
         ),
       ),
@@ -173,8 +165,15 @@ class _CustomDropdownState extends State<CustomDropdown> {
             padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 9.h),
             decoration: BoxDecoration(
               color: appTheme.white_A700,
-              borderRadius: BorderRadius.circular(widget.borderRadius ?? 20.h),
-              boxShadow: [
+              borderRadius: _isExpanded
+                  ? BorderRadius.only(
+                topLeft: Radius.circular(widget.borderRadius ?? 20.h),
+                topRight: Radius.circular(widget.borderRadius ?? 20.h),
+              )
+                  : BorderRadius.circular(widget.borderRadius ?? 20.h),
+              boxShadow: _isExpanded
+                  ? null
+                  : [
                 BoxShadow(
                   color: appTheme.color66D3D3,
                   offset: Offset(0, 4.h),

@@ -5,16 +5,15 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/custom_image_view.dart';
 import '../../widgets/custom_text_form_field.dart';
 
-/// RegisterScreen - 회원가입 화면
+/// RegisterScreen - 회원가입 화면 (Figma 디자인에 정확히 맞춤)
 ///
-/// 기능:
-/// - 이름, 닉네임, 이메일, 비밀번호 입력
-/// - 비밀번호 확인 (일치 여부 검증)
-/// - 이메일 형식 검증
-/// - 회원가입 버튼
-/// - 소셜 로그인 (카카오, 구글)
-/// - 그라데이션 배경
-/// - 반응형 디자인
+/// Figma 디자인 사양:
+/// - 그라데이션: Color(0xFFE3FAE8) → Color(0xFFA0ECB1)
+/// - 입력 필드 borderRadius: 20, height: 34
+/// - 필드 간격: 22
+/// - 회원가입 버튼: height 38, borderRadius 20
+/// - 소셜 로그인 버튼: height 36, borderRadius 100 (완전히 둥근 형태)
+/// - 카카오 버튼 색상: Color(0xFFFFE812)
 class RegisterScreen extends StatelessWidget {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController nicknameController = TextEditingController();
@@ -36,8 +35,8 @@ class RegisterScreen extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFE3FAE8),
-              appTheme.green_200,
+              Color(0xFFE3FAE8), // Figma 디자인
+              Color(0xFFA0ECB1), // Figma 디자인
             ],
           ),
         ),
@@ -78,12 +77,12 @@ class RegisterScreen extends StatelessWidget {
     );
   }
 
-  /// 로고 섹션 (로고에 이미 "베란다 농부" 텍스트 포함)
+  /// 로고 섹션
   Widget _buildLogoSection(BuildContext context) {
     return CustomImageView(
       imagePath: ImageConstant.img,
-      height: 63.h,
-      width: 280.h,  // 로고 + 텍스트를 포함한 전체 너비
+      height: 63.h, // Figma 디자인: height 63
+      width: 230.h, // 로고 + 텍스트를 포함한 전체 너비
       fit: BoxFit.contain,
     );
   }
@@ -100,7 +99,7 @@ class RegisterScreen extends StatelessWidget {
           placeholder: '이름을 입력해 주세요.',
           validator: _validateName,
         ),
-        SizedBox(height: 22.h),
+        SizedBox(height: 22.h), // Figma 디자인: 22
 
         // 닉네임 필드
         _buildInputField(
@@ -109,7 +108,7 @@ class RegisterScreen extends StatelessWidget {
           placeholder: '닉네임을 입력해 주세요.',
           validator: _validateNickname,
         ),
-        SizedBox(height: 22.h),
+        SizedBox(height: 22.h), // Figma 디자인: 22
 
         // 이메일 필드
         _buildInputField(
@@ -119,7 +118,7 @@ class RegisterScreen extends StatelessWidget {
           keyboardType: TextInputType.emailAddress,
           validator: _validateEmail,
         ),
-        SizedBox(height: 22.h),
+        SizedBox(height: 22.h), // Figma 디자인: 22
 
         // 비밀번호 필드
         _buildInputField(
@@ -129,7 +128,7 @@ class RegisterScreen extends StatelessWidget {
           obscureText: true,
           validator: _validatePassword,
         ),
-        SizedBox(height: 22.h),
+        SizedBox(height: 22.h), // Figma 디자인: 22
 
         // 비밀번호 확인 필드
         _buildInputField(
@@ -155,15 +154,23 @@ class RegisterScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 라벨
         Padding(
           padding: EdgeInsets.only(left: 10.h),
           child: Text(
             label,
-            style: TextStyleHelper.instance.body12MediumPretendard
-                .copyWith(height: 1.0),
+            style: TextStyle(
+              color: appTheme.teal_400,
+              fontSize: 12.fSize,
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w500,
+              height: 1.0,
+              letterSpacing: -0.30,
+            ),
           ),
         ),
         SizedBox(height: 2.h),
+        // 입력 필드
         CustomTextFormField(
           controller: controller,
           placeholder: placeholder,
@@ -173,7 +180,7 @@ class RegisterScreen extends StatelessWidget {
           fillColor: appTheme.white_A700,
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
-          borderRadius: 20.h,
+          borderRadius: 20.h, // Figma 디자인: 20
           contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 9.h),
         ),
       ],
@@ -188,45 +195,47 @@ class RegisterScreen extends StatelessWidget {
       backgroundColor: appTheme.teal_400,
       textColor: appTheme.white_A700,
       width: double.infinity,
-      height: 38.h,
+      height: 38.h, // Figma 디자인: 38
       fontSize: 14.fSize,
       fontWeight: FontWeight.w700,
-      borderRadius: 20.h,
+      borderRadius: 20.h, // Figma 디자인: 20
       padding: EdgeInsets.symmetric(horizontal: 30.h, vertical: 10.h),
     );
   }
 
-  /// 소셜 로그인 섹션
+  /// 소셜 로그인 섹션 (카카오, 구글)
   Widget _buildSocialLoginSection(BuildContext context) {
     return Row(
       children: [
+        // 카카오 로그인 버튼
         Expanded(
           child: CustomButton(
             text: '카카오로 시작하기',
             onPressed: () => _onKakaoLoginPressed(context),
-            backgroundColor: appTheme.yellow_A400,
-            textColor: appTheme.gray_800,
+            backgroundColor: Color(0xFFFFE812), // Figma 디자인: 정확한 카카오 옐로우
+            textColor: Color(0xFF3B3B3B), // Figma 디자인
             leftIcon: ImageConstant.imgGroup60,
-            height: 36.h,
+            height: 36.h, // Figma 디자인: 36
             fontSize: 12.fSize,
             fontWeight: FontWeight.w400,
-            borderRadius: 100.h,
-            padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 8.h),
+            borderRadius: 100.h, // Figma 디자인: 100 (완전히 둥근 형태)
+            padding: EdgeInsets.symmetric(horizontal: 6.h, vertical: 6.h),
           ),
         ),
-        SizedBox(width: 23.h),
+        SizedBox(width: 23.h), // Figma 디자인: 23
+        // 구글 로그인 버튼
         Expanded(
           child: CustomButton(
             text: '구글로 시작하기',
             onPressed: () => _onGoogleLoginPressed(context),
             backgroundColor: appTheme.white_A700,
-            textColor: appTheme.gray_800,
+            textColor: Color(0xFF3B3B3B), // Figma 디자인
             leftIcon: ImageConstant.imgGroup61,
-            height: 36.h,
+            height: 36.h, // Figma 디자인: 36
             fontSize: 12.fSize,
             fontWeight: FontWeight.w400,
-            borderRadius: 100.h,
-            padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 8.h),
+            borderRadius: 100.h, // Figma 디자인: 100 (완전히 둥근 형태)
+            padding: EdgeInsets.symmetric(horizontal: 6.h, vertical: 6.h),
           ),
         ),
       ],
@@ -315,7 +324,7 @@ class RegisterScreen extends StatelessWidget {
   /// 회원가입 버튼 핸들러
   void _onRegisterPressed(BuildContext context) {
     if (_formKey.currentState?.validate() ?? false) {
-      // Show loading state
+      // 로딩 표시
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -326,11 +335,11 @@ class RegisterScreen extends StatelessWidget {
         ),
       );
 
-      // Simulate registration process
+      // 회원가입 프로세스 시뮬레이션
       Future.delayed(Duration(seconds: 2), () {
-        Navigator.of(context).pop(); // Close loading dialog
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
 
-        // Show success message
+        // 성공 메시지 표시
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -341,7 +350,7 @@ class RegisterScreen extends StatelessWidget {
           ),
         );
 
-        // Navigate to onboarding screen
+        // 온보딩 화면으로 이동
         Future.delayed(Duration(seconds: 1), () {
           Navigator.of(context).pushReplacementNamed(
             AppRoutes.onboardingScreen,
@@ -353,31 +362,31 @@ class RegisterScreen extends StatelessWidget {
 
   /// 카카오 로그인 버튼 핸들러
   void _onKakaoLoginPressed(BuildContext context) {
-    // Show loading state
+    // 로딩 표시
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => Center(
         child: CircularProgressIndicator(
-          color: appTheme.yellow_A400,
+          color: Color(0xFFFFE812),
         ),
       ),
     );
 
-    // Simulate Kakao registration process
+    // 카카오 회원가입 프로세스 시뮬레이션
     Future.delayed(Duration(seconds: 2), () {
-      Navigator.of(context).pop(); // Close loading dialog
+      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
 
-      // Show success message
+      // 성공 메시지 표시
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('카카오 회원가입 성공!'),
-          backgroundColor: appTheme.yellow_A400,
+          backgroundColor: Color(0xFFFFE812),
           duration: Duration(seconds: 2),
         ),
       );
 
-      // Navigate to login screen
+      // 로그인 화면으로 이동
       Future.delayed(Duration(seconds: 1), () {
         Navigator.of(context).pushNamedAndRemoveUntil(
           AppRoutes.loginScreen,
@@ -389,7 +398,7 @@ class RegisterScreen extends StatelessWidget {
 
   /// 구글 로그인 버튼 핸들러
   void _onGoogleLoginPressed(BuildContext context) {
-    // Show loading state
+    // 로딩 표시
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -400,11 +409,11 @@ class RegisterScreen extends StatelessWidget {
       ),
     );
 
-    // Simulate Google registration process
+    // 구글 회원가입 프로세스 시뮬레이션
     Future.delayed(Duration(seconds: 2), () {
-      Navigator.of(context).pop(); // Close loading dialog
+      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
 
-      // Show success message
+      // 성공 메시지 표시
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('구글 회원가입 성공!'),
@@ -413,7 +422,7 @@ class RegisterScreen extends StatelessWidget {
         ),
       );
 
-      // Navigate to login screen
+      // 로그인 화면으로 이동
       Future.delayed(Duration(seconds: 1), () {
         Navigator.of(context).pushNamedAndRemoveUntil(
           AppRoutes.loginScreen,

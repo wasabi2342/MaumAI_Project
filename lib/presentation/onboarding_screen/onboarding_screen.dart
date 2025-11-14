@@ -29,14 +29,14 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   final TextEditingController _ageController = TextEditingController();
-  
+
   int _currentPage = 0;
   String? _selectedOccupation;
   String? _selectedGender;
 
   // 직업 목록
   final List<String> _occupations = ['학생', '회사원', '주부', '기타'];
-  
+
   // 성별 목록
   final List<String> _genders = ['남성', '여성', '기타'];
 
@@ -59,7 +59,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (!_validateCurrentPage()) {
         return;
       }
-      
+
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -87,27 +87,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           return false;
         }
         return true;
-      
+
       case 1: // 나이 입력
         if (_ageController.text.isEmpty) {
           _showErrorSnackBar('나이를 입력해주세요');
           return false;
         }
-        
+
         int? age = int.tryParse(_ageController.text);
         if (age == null || age < 1 || age > 120) {
           _showErrorSnackBar('올바른 나이를 입력해주세요 (1-120)');
           return false;
         }
         return true;
-      
+
       case 2: // 성별 선택
         if (_selectedGender == null) {
           _showErrorSnackBar('성별을 선택해주세요');
           return false;
         }
         return true;
-      
+
       default:
         return true;
     }
@@ -221,7 +221,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             },
             borderRadius: 20.h,
           ),
-          SizedBox(height: 200.h),
+          SizedBox(height: 309.h),
         ],
       ),
     );
@@ -333,24 +333,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       padding: EdgeInsets.symmetric(horizontal: 23.h),
       child: Column(
         children: [
-          // 페이지 인디케이터
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(3, (index) {
-              return Container(
-                margin: EdgeInsets.symmetric(horizontal: 11.h),
-                width: 8.h,
-                height: 8.h,
-                decoration: BoxDecoration(
-                  color: index <= _currentPage
-                      ? appTheme.teal_400
-                      : appTheme.green_200,
-                  shape: BoxShape.circle,
-                ),
-              );
-            }),
-          ),
-          SizedBox(height: 10.h),
           // 이전/다음 버튼
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -406,6 +388,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
             ],
+          ),
+          SizedBox(height: 4.5.h),
+          // 페이지 인디케이터
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(3, (index) {
+              return Container(
+                margin: EdgeInsets.symmetric(horizontal: 11.h),
+                width: 8.h,
+                height: 8.h,
+                decoration: BoxDecoration(
+                  color: index == _currentPage
+                      ? appTheme.teal_400
+                      : appTheme.green_200,
+                  shape: BoxShape.circle,
+                ),
+              );
+            }),
           ),
         ],
       ),
