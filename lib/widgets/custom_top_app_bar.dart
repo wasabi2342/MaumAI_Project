@@ -2,19 +2,61 @@
 
 import 'package:flutter/material.dart';
 import '../core/app_export.dart';
+import 'notification_sidebar.dart';
 
 /// 공통 상단 앱 바 위젯
 ///
 /// 기능:
 /// - 중앙 로고 표시
-/// - 알림 아이콘 버튼
+/// - 알림 아이콘 버튼 (알림 사이드바 토글)
 /// - 마이페이지(프로필) 아이콘 버튼
-class CustomTopAppBar extends StatelessWidget implements PreferredSizeWidget {
+class CustomTopAppBar extends StatefulWidget implements PreferredSizeWidget {
   const CustomTopAppBar({Key? key}) : super(key: key);
 
   @override
+  State<CustomTopAppBar> createState() => _CustomTopAppBarState();
+
+  @override
+  Size get preferredSize => Size.fromHeight(56.h);
+}
+
+class _CustomTopAppBarState extends State<CustomTopAppBar> {
+  /// 알림 사이드바 표시
+  void _showNotificationSidebar(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Color(0x3FD9D9D9),
+      transitionDuration: Duration(milliseconds: 300),
+      pageBuilder: (BuildContext buildContext, Animation animation,
+          Animation secondaryAnimation) {
+        return NotificationSidebar(
+          onClose: () {
+            Navigator.of(context).pop();
+          },
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        // 오른쪽에서 왼쪽으로 슬라이드
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOut;
+
+        var tween =
+        Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var offsetAnimation = animation.drive(tween);
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // AppBar 위젯을 사용하면 상태바 영역을 자동으로 처리해줍니다.
     return AppBar(
       elevation: 0, // 그림자 제거
       toolbarHeight: 56.h, // 기본 높이 (조정 가능)
@@ -22,7 +64,6 @@ class CustomTopAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false, // 뒤로가기 버튼 자동 생성 방지
 
       // 1. 중앙 로고
-      // 기존 _buildHeader()의 로직을 그대로 가져옵니다.
       title: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
@@ -48,36 +89,32 @@ class CustomTopAppBar extends StatelessWidget implements PreferredSizeWidget {
 
       // 2. 우측 아이콘 버튼 (알림, 마이페이지)
       actions: [
+        // 알림 버튼
         IconButton(
           onPressed: () {
-            // TODO: 알림 화면 이동 로직
-            print('알림 아이콘 클릭');
-            // 예: Navigator.pushNamed(context, AppRoutes.notificationScreen);
+            _showNotificationSidebar(context);
           },
           icon: Icon(
             Icons.notifications_none_outlined,
-            color: appTheme.blue_gray_700, // 아이콘 색상은 디자인에 맞게 조정
+            color: appTheme.blue_gray_700,
             size: 28.h,
           ),
+          tooltip: '알림',
         ),
+        // 마이페이지 버튼
         IconButton(
           onPressed: () {
-            // TODO: 마이페이지 화면 이동 로직
-            print('마이페이지 아이콘 클릭');
-            // 예: Navigator.pushNamed(context, AppRoutes.myPageScreen);
+            Navigator.pushNamed(context, AppRoutes.myPageScreen);
           },
           icon: Icon(
             Icons.person_outline,
-            color: appTheme.blue_gray_700, // 아이콘 색상은 디자인에 맞게 조정
+            color: appTheme.blue_gray_700,
             size: 28.h,
           ),
+          tooltip: '마이페이지',
         ),
         SizedBox(width: 16.h), // 우측 여백
       ],
     );
   }
-
-  /// AppBar 위젯은 PreferredSizeWidget을 구현해야 합니다.
-  @override
-  Size get preferredSize => Size.fromHeight(56.h); // 앱 바 높이 설정
 }
