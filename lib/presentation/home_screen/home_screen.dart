@@ -13,6 +13,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedTab = 0; // 0: 온도, 1: 습도, 2: 조도, 3: EC, 4: Co2
 
+  // 각 탭의 색상 정의
+  final List<Color> _tabColors = [
+    Color(0xFFEC7243), // 온도 - 빨간색
+    Color(0xFF32C697), // 습도 - 민트색
+    Color(0xFFECC043), // 조도 - 노란색
+    Color(0xFF32C697), // EC - 민트색
+    Color(0xFF797979), // Co2 - 회색
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -292,61 +301,30 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    child: Stack(
+                    child: Column(
                       children: [
                         // 탭 바
-                        Positioned(
-                          left: 10.w,
-                          top: 14.h,
-                          child: Container(
-                            width: 341.w,
-                            height: 21.h,
-                            decoration: BoxDecoration(
-                              color: Color(0xFFEEEEEE),
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                            child: Stack(
-                              children: [
-                                // 선택된 탭 배경
-                                Positioned(
-                                  left: 11.w,
-                                  top: 0,
-                                  child: Container(
-                                    width: 46.w,
-                                    height: 21.h,
-                                    decoration: BoxDecoration(
-                                      color: Color(0xFFEC7243),
-                                      borderRadius: BorderRadius.circular(10.h),
-                                    ),
-                                  ),
-                                ),
-                                // 탭 텍스트들
-                                Positioned(
-                                  left: 22.w,
-                                  top: 4.h,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    spacing: 45.w,
-                                    children: [
-                                      _buildTabText('온도', true),
-                                      _buildTabText('습도', false),
-                                      _buildTabText('조도', false),
-                                      _buildTabText('EC', false),
-                                      _buildTabText('Co2', false),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                        Container(
+                          margin: EdgeInsets.only(left: 10.w, right: 10.w, top: 14.h),
+                          height: 21.h,
+                          decoration: BoxDecoration(
+                            color: Color(0xFFEEEEEE),
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: Row(
+                            children: [
+                              _buildTabButton('온도', 0),
+                              _buildTabButton('습도', 1),
+                              _buildTabButton('조도', 2),
+                              _buildTabButton('EC', 3),
+                              _buildTabButton('Co2', 4),
+                            ],
                           ),
                         ),
                         // 그래프 영역
-                        Positioned(
-                          left: 3.w,
-                          top: 61.h,
-                          child: Container(
-                            width: 355.w,
-                            height: 133.h,
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(left: 13.w, right: 13.w, top: 26.h, bottom: 13.h),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -398,6 +376,42 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       bottomNavigationBar: CustomBottomNavBar(
         activeRoute: AppRoutes.homeScreen,
+      ),
+    );
+  }
+
+  /// 탭 버튼 (개선된 버전)
+  Widget _buildTabButton(String label, int index) {
+    bool isSelected = _selectedTab == index;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedTab = index;
+          });
+        },
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          margin: EdgeInsets.symmetric(horizontal: 2.w, vertical: 2.h),
+          decoration: BoxDecoration(
+            color: isSelected ? _tabColors[index] : Colors.transparent,
+            borderRadius: BorderRadius.circular(10.h),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Color(0xFFFDFEFB) : Color(0xFF3B3B3B),
+                fontSize: 14.fSize,
+                fontFamily: 'Pretendard',
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                height: 1,
+                letterSpacing: -0.35,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -670,21 +684,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// 탭 텍스트
-  Widget _buildTabText(String text, bool isSelected) {
-    return Text(
-      text,
-      style: TextStyle(
-        color: isSelected ? Color(0xFFFDFEFB) : Color(0xFF3B3B3B),
-        fontSize: 14.fSize,
-        fontFamily: 'Pretendard',
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-        height: 1,
-        letterSpacing: -0.35,
       ),
     );
   }
