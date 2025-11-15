@@ -10,6 +10,25 @@ class CustomBottomNavBar extends StatelessWidget {
     required this.activeRoute,
   }) : super(key: key);
 
+  /// 애니메이션 없이 페이지 전환하는 헬퍼 메서드
+  void _navigateWithoutAnimation(BuildContext context, String routeName) {
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          // 라우트 이름에 해당하는 화면 위젯 가져오기
+          final route = AppRoutes.routes[routeName];
+          if (route != null) {
+            return route(context);
+          }
+          return Container(); // fallback
+        },
+        transitionDuration: Duration.zero, // 애니메이션 시간 0으로 설정
+        reverseTransitionDuration: Duration.zero, // 역방향 애니메이션도 0으로 설정
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -39,7 +58,7 @@ class CustomBottomNavBar extends StatelessWidget {
             isFirst: true,
             onTap: activeRoute == AppRoutes.homeScreen
                 ? null
-                : () => Navigator.pushReplacementNamed(context, AppRoutes.homeScreen),
+                : () => _navigateWithoutAnimation(context, AppRoutes.homeScreen),
           ),
           _buildNavItem(
             context,
@@ -47,7 +66,7 @@ class CustomBottomNavBar extends StatelessWidget {
             isSelected: activeRoute == AppRoutes.diaryScreen,
             onTap: activeRoute == AppRoutes.diaryScreen
                 ? null
-                : () => Navigator.pushReplacementNamed(context, AppRoutes.diaryScreen),
+                : () => _navigateWithoutAnimation(context, AppRoutes.diaryScreen),
           ),
           _buildNavItem(
             context,
@@ -55,7 +74,7 @@ class CustomBottomNavBar extends StatelessWidget {
             isSelected: activeRoute == AppRoutes.diagnosisScreen,
             onTap: activeRoute == AppRoutes.diagnosisScreen
                 ? null
-                : () => Navigator.pushReplacementNamed(context, AppRoutes.diagnosisScreen),
+                : () => _navigateWithoutAnimation(context, AppRoutes.diagnosisScreen),
           ),
           _buildNavItem(
             context,
@@ -64,7 +83,7 @@ class CustomBottomNavBar extends StatelessWidget {
             isLast: true,
             onTap: activeRoute == AppRoutes.controlScreen
                 ? null
-                : () => Navigator.pushReplacementNamed(context, AppRoutes.controlScreen),
+                : () => _navigateWithoutAnimation(context, AppRoutes.controlScreen),
           ),
         ],
       ),
