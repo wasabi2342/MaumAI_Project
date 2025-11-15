@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_export.dart';
+import '../../widgets/custom_top_tab.dart';
 
 /// GuideScreen - 앱 사용 가이드 화면
 ///
@@ -20,7 +21,7 @@ class GuideScreen extends StatefulWidget {
 class _GuideScreenState extends State<GuideScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  
+
   // 가이드 페이지 데이터
   final List<GuidePageData> _guidePages = [
     GuidePageData(
@@ -93,7 +94,7 @@ class _GuideScreenState extends State<GuideScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopTab(),
+            CustomTopTab(text: '가이드'),
             Expanded(
               child: Column(
                 children: [
@@ -113,48 +114,6 @@ class _GuideScreenState extends State<GuideScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  /// 상단 탭 (가이드)
-  Widget _buildTopTab() {
-    return Container(
-      width: 185.h,
-      height: 36.h,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            appTheme.green_200,
-            appTheme.green_200.withOpacity(0),
-          ],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(50.h),
-          bottomRight: Radius.circular(50.h),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.teal_400.withOpacity(0.36),
-            blurRadius: 4.h,
-            offset: Offset(0, 0),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          '가이드',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: appTheme.white_A700,
-            fontSize: 16.fSize,
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w600,
-            height: 1.31,
-          ),
         ),
       ),
     );

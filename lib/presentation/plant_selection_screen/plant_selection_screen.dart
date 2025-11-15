@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import '../../core/app_export.dart';
+import '../../widgets/custom_top_tab.dart';
+import '../../widgets/custom_top_app_bar.dart';
+import '../../widgets/custom_bottom_nav_bar.dart';
 
 /// PlantSelectionScreen - 재배할 식물 선택 화면
 ///
@@ -22,27 +25,27 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
   final List<PlantInfo> _plants = [
     PlantInfo(
       id: '1',
-      name: '상추',
+      name: '상추상추상추상추상추상추',
       difficulty: '쉬움',
       imageUrl: 'assets/images/plant_lettuce.png',
     ),
     PlantInfo(
       id: '2',
-      name: '토마토',
-      difficulty: '보통',
-      imageUrl: 'assets/images/plant_tomato.png',
+      name: '상추상추상추상추상추상추',
+      difficulty: '쉬움',
+      imageUrl: 'assets/images/plant_lettuce.png',
     ),
     PlantInfo(
       id: '3',
-      name: '바질',
+      name: '상추상추상추상추상추상추',
       difficulty: '쉬움',
-      imageUrl: 'assets/images/plant_basil.png',
+      imageUrl: 'assets/images/plant_lettuce.png',
     ),
     PlantInfo(
       id: '4',
-      name: '딸기',
-      difficulty: '어려움',
-      imageUrl: 'assets/images/plant_strawberry.png',
+      name: '상추상추상추상추상추상추',
+      difficulty: '쉬움',
+      imageUrl: 'assets/images/plant_lettuce.png',
     ),
   ];
 
@@ -119,13 +122,14 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appTheme.green_50,
+      appBar: CustomTopAppBar(),
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopTab(),
+            CustomTopTab(text: '재배할 식물 선택'),
             Expanded(
               child: ListView.builder(
-                padding: EdgeInsets.only(top: 28.h, bottom: 20.h),
+                padding: EdgeInsets.only(top: 16.h, bottom: 20.h),
                 itemCount: _plants.length,
                 itemBuilder: (context, index) {
                   return _buildPlantCard(_plants[index]);
@@ -135,47 +139,8 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  /// 상단 탭 (재배할 식물 선택)
-  Widget _buildTopTab() {
-    return Container(
-      width: 185.h,
-      height: 36.h,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            appTheme.green_200,
-            appTheme.green_200.withOpacity(0),
-          ],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(50.h),
-          bottomRight: Radius.circular(50.h),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.teal_400.withOpacity(0.36),
-            blurRadius: 4.h,
-            offset: Offset(0, 0),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          '재배할 식물 선택',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: appTheme.white_A700,
-            fontSize: 14.fSize,
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w600,
-            height: 1.5,
-          ),
-        ),
+      bottomNavigationBar: CustomBottomNavBar(
+        activeRoute: AppRoutes.homeScreen,
       ),
     );
   }

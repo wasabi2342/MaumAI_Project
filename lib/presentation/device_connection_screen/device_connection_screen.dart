@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import '../../core/app_export.dart';
+import '../../widgets/custom_top_tab.dart';
 
 /// DeviceConnectionScreen - 블루투스 기기 연결 화면
 ///
@@ -83,7 +84,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
     // 3초 후 기기 선택 화면으로 이동
     Future.delayed(const Duration(seconds: 3), () {
       Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-      
+
       setState(() {
         _isSearching = false;
       });
@@ -104,7 +105,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopTab(),
+            CustomTopTab(text: '기기연결'),
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -126,48 +127,6 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
             _buildNavigationSection(),
             SizedBox(height: 40.h),
           ],
-        ),
-      ),
-    );
-  }
-
-  /// 상단 탭 (기기연결)
-  Widget _buildTopTab() {
-    return Container(
-      width: 185.h,
-      height: 36.h,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            appTheme.green_200,
-            appTheme.green_200.withOpacity(0),
-          ],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(50.h),
-          bottomRight: Radius.circular(50.h),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.teal_400.withOpacity(0.36),
-            blurRadius: 4.h,
-            offset: Offset(0, 0),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          '기기연결',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: appTheme.white_A700,
-            fontSize: 16.fSize,
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w600,
-            height: 1.31,
-          ),
         ),
       ),
     );

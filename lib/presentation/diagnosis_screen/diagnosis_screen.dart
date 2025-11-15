@@ -1,8 +1,8 @@
-
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../core/app_export.dart';
+import '../../widgets/custom_top_tab.dart';
 
 /// DiagnosisScreen - AI 식물 진단 화면
 ///
@@ -111,6 +111,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            CustomTopTab(text: '진단'),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -157,53 +158,10 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       ),
       child: Stack(
         children: [
-          // AI 식물진단 탭
-          Positioned(
-            left: 104.h,
-            top: 48.h,
-            child: Container(
-              width: 185.h,
-              height: 36.h,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    appTheme.green_200,
-                    appTheme.green_200.withOpacity(0),
-                  ],
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(50.h),
-                  bottomRight: Radius.circular(50.h),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: appTheme.teal_400.withOpacity(0.36),
-                    blurRadius: 4.h,
-                    offset: Offset(0, 0),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  'AI 식물진단',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: appTheme.white_A700,
-                    fontSize: 14.fSize,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w600,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ),
-          ),
           // 사진 분석 라벨
           Positioned(
             left: 0,
-            top: 93.h,
+            top: 16.h,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 17.h, vertical: 4.h),
               decoration: BoxDecoration(
@@ -240,7 +198,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
           // 사진 촬영 카드
           Positioned(
             left: 16.h,
-            top: 140.h,
+            top: 63.h,
             child: Container(
               width: 361.h,
               height: 167.h,

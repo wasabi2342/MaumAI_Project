@@ -7,7 +7,7 @@ import 'notification_sidebar.dart';
 /// 공통 상단 앱 바 위젯
 ///
 /// 기능:
-/// - 중앙 로고 표시
+/// - 중앙 로고 표시 (img_.png - 잎 아이콘과 "베란다 농부" 텍스트 포함)
 /// - 알림 아이콘 버튼 (알림 사이드바 토글)
 /// - 마이페이지(프로필) 아이콘 버튼
 class CustomTopAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -63,27 +63,11 @@ class _CustomTopAppBarState extends State<CustomTopAppBar> {
       backgroundColor: appTheme.green_50, // 화면 배경색과 동일하게 설정
       automaticallyImplyLeading: false, // 뒤로가기 버튼 자동 생성 방지
 
-      // 1. 중앙 로고
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.eco,
-            size: 28.h,
-            color: appTheme.teal_400,
-          ),
-          SizedBox(width: 5.h),
-          Text(
-            '베란다 농부',
-            style: TextStyle(
-              color: appTheme.teal_400,
-              fontSize: 13.25.fSize,
-              fontFamily: 'Cafe24 Ssurround OTF',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+      // 1. 중앙 로고 (img_.png 이미지 - 잎 아이콘 + "베란다 농부" 텍스트 포함)
+      title: CustomImageView(
+        imagePath: ImageConstant.img,
+        height: 28.h,
+        fit: BoxFit.contain,
       ),
       centerTitle: true, // 제목(로고)을 중앙에 배치
 
