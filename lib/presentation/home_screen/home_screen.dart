@@ -23,6 +23,305 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // 화면 렌더링 후 팝업 표시
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showPlantGuideDialog();
+    });
+  }
+
+  /// 식물 가이드 팝업 표시
+  void _showPlantGuideDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Stack(
+          children: [
+            // 블러 배경
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Container(
+                color: Colors.black.withOpacity(0.2),
+              ),
+            ),
+            // 팝업 다이얼로그
+            Center(
+              child: _buildPlantGuidePopup(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 식물 가이드 팝업 위젯
+  Widget _buildPlantGuidePopup() {
+    return Container(
+      width: 297.w,
+      height: 374.h,
+      decoration: BoxDecoration(
+        color: Color(0xFFFDFEFB),
+        borderRadius: BorderRadius.circular(20.h),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x66D3D3D3),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // 배경 장식
+          Positioned(
+            left: 297.w,
+            top: 358.h,
+            child: Transform(
+              transform: Matrix4.rotationZ(3.14),
+              child: Container(
+                width: 270.w,
+                height: 215.h,
+                decoration: BoxDecoration(
+                  color: Color(0x19E3FAE8),
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(20.h),
+                    bottomRight: Radius.circular(20.h),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x66D3D3D3),
+                      blurRadius: 8,
+                      offset: Offset(0, 0),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 닫기 버튼
+          Positioned(
+            right: 16.w,
+            top: 16.h,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Icon(
+                Icons.close,
+                size: 24.w,
+                color: Color(0xFFD3D3D3),
+              ),
+            ),
+          ),
+
+          // 식물 정보 섹션
+          Positioned(
+            left: 27.w,
+            top: 36.h,
+            child: Row(
+              children: [
+                // 식물 이미지
+                Container(
+                  width: 90.w,
+                  height: 90.h,
+                  decoration: BoxDecoration(
+                    color: Color(0xFFE3FAE8),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                SizedBox(width: 11.w),
+                // 식물 정보 텍스트
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 142.w,
+                      child: Text(
+                        '상추상추상추상추상추상추',
+                        style: TextStyle(
+                          color: Color(0xFF797979),
+                          fontSize: 14.fSize,
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                          letterSpacing: -0.35,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 5.h),
+                    SizedBox(
+                      width: 142.w,
+                      child: Text(
+                        '재배 난이도 : 쉬움',
+                        style: TextStyle(
+                          color: Color(0xFF797979),
+                          fontSize: 12.fSize,
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w500,
+                          height: 1,
+                          letterSpacing: -0.30,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // 적정 온도
+          Positioned(
+            left: 47.5.w,
+            top: 152.h,
+            child: _buildGuideRow(
+              iconWidget: Container(
+                width: 11.w,
+                height: 22.h,
+                child: Icon(
+                  Icons.thermostat,
+                  size: 20.w,
+                  color: Color(0xFF32C697),
+                ),
+              ),
+              label: '적정 온도',
+              value: '22 ℃ ~ 22 ℃',
+            ),
+          ),
+
+          // 적정 습도
+          Positioned(
+            left: 47.5.w,
+            top: 196.h,
+            child: _buildGuideRow(
+              iconWidget: Container(
+                width: 16.w,
+                height: 22.h,
+                child: Icon(
+                  Icons.water_drop,
+                  size: 20.w,
+                  color: Color(0xFF32C697),
+                ),
+              ),
+              label: '적정 습도',
+              value: '59 % ~ 59 %',
+            ),
+          ),
+
+          // 적정 조도
+          Positioned(
+            left: 47.5.w,
+            top: 240.h,
+            child: _buildGuideRow(
+              iconWidget: Container(
+                width: 22.w,
+                height: 22.h,
+                child: Icon(
+                  Icons.wb_sunny,
+                  size: 20.w,
+                  color: Color(0xFF32C697),
+                ),
+              ),
+              label: '적정 조도',
+              value: '59 % ~ 59 %',
+            ),
+          ),
+
+          // LED
+          Positioned(
+            left: 47.5.w,
+            top: 284.h,
+            child: _buildGuideRow(
+              iconWidget: Container(
+                width: 17.w,
+                height: 21.h,
+                child: Icon(
+                  Icons.lightbulb,
+                  size: 20.w,
+                  color: Color(0xFF32C697),
+                ),
+              ),
+              label: 'LED',
+              value: '430 ppm ~ 430 ppm',
+              fontSize: 10.fSize,
+            ),
+          ),
+
+          // 양액주기
+          Positioned(
+            left: 47.5.w,
+            top: 327.h,
+            child: _buildGuideRow(
+              iconWidget: Container(
+                width: 24.w,
+                height: 24.h,
+                child: Transform.rotate(
+                  angle: 0.79,
+                  child: Icon(
+                    Icons.opacity,
+                    size: 20.w,
+                    color: Color(0xFF32C697),
+                  ),
+                ),
+              ),
+              label: '양액주기',
+              value: '430 ppm ~ 430 ppm',
+              fontSize: 10.fSize,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 가이드 행 위젯
+  Widget _buildGuideRow({
+    required Widget iconWidget,
+    required String label,
+    required String value,
+    double? fontSize,
+  }) {
+    return Row(
+      children: [
+        iconWidget,
+        SizedBox(width: 13.w),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+          decoration: BoxDecoration(
+            color: Color(0xFFE3FAE8),
+            borderRadius: BorderRadius.circular(20.h),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Color(0xFF797979),
+              fontSize: fontSize ?? 12.fSize,
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w500,
+              height: 1,
+              letterSpacing: fontSize != null ? -0.25 : -0.30,
+            ),
+          ),
+        ),
+        SizedBox(width: 20.w),
+        Text(
+          value,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF797979),
+            fontSize: fontSize ?? 12.fSize,
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w500,
+            height: 1,
+            letterSpacing: fontSize != null ? -0.25 : -0.30,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appTheme.green_50,
