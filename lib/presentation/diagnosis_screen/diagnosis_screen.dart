@@ -676,10 +676,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     );
   }
 
-// v-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --v
-// Widget _buildBottomNavigation() { ... }
-// Widget _buildNavItem(String label, IconData icon, bool isSelected, VoidCallback? onTap) { ... }
-// ^-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --^
 }
 
 /// 진단 결과 데이터 모델

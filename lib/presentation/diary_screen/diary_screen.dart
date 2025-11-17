@@ -1,4 +1,3 @@
-
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -300,21 +299,26 @@ class _DiaryScreenState extends State<DiaryScreen> {
       backgroundColor: appTheme.green_50,
       appBar: CustomTopAppBar(),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildGrowthInfoSection(),
-                    SizedBox(height: 20.h),
-                    _buildCalendarSection(),
-                  ],
+        child: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 393.h),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        _buildGrowthInfoSection(),
+                        SizedBox(height: 20.h),
+                        _buildCalendarSection(),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                // _buildBottomNavigation(), // <-- 이 부분이 삭제됩니다.
+              ],
             ),
-            // _buildBottomNavigation(), // <-- 이 부분이 삭제됩니다.
-          ],
+          ),
         ),
       ),
       // v-- 이 부분이 추가됩니다. --v
@@ -330,14 +334,17 @@ class _DiaryScreenState extends State<DiaryScreen> {
   Widget _buildGrowthInfoSection() {
     return Container(
       width: double.infinity,
+      margin: EdgeInsets.symmetric(horizontal: 16.h),
       height: 235.h,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: appTheme.green_50,
+        color: const Color(0xFFE3FAE8),
         boxShadow: [
           BoxShadow(
-            color: appTheme.color66D3D3,
+            color: const Color(0x66D3D3D3),
             blurRadius: 8.h,
             offset: Offset(0, 0),
+            spreadRadius: 0,
           ),
         ],
       ),
@@ -348,23 +355,32 @@ class _DiaryScreenState extends State<DiaryScreen> {
             left: 0,
             top: 57.h,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 17.h, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: appTheme.white_A700,
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(20.h),
-                  bottomRight: Radius.circular(20.h),
+              padding: EdgeInsets.only(
+                top: 4.h,
+                left: 17.h,
+                right: 20.h,
+                bottom: 4.h,
+              ),
+              clipBehavior: Clip.antiAlias,
+              decoration: ShapeDecoration(
+                color: const Color(0xFFFDFEFB),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(20.h),
+                    bottomRight: Radius.circular(20.h),
+                  ),
                 ),
               ),
               child: Text(
                 '식물 성장 다이어리',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: appTheme.teal_400,
+                  color: const Color(0xFF32C697),
                   fontSize: 16.fSize,
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
                   height: 1.0,
+                  letterSpacing: -0.40,
                 ),
               ),
             ),
@@ -372,38 +388,39 @@ class _DiaryScreenState extends State<DiaryScreen> {
           // 정보 카드 배경
           Positioned(
             left: 16.h,
+            right: 16.h,
             top: 99.h,
             child: Container(
-              width: 361.h,
               height: 136.h,
-              decoration: BoxDecoration(
-                color: appTheme.white_A700,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20.h),
-                  topRight: Radius.circular(20.h),
+              decoration: ShapeDecoration(
+                color: const Color(0xFFFDFEFB),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20.h),
+                    topRight: Radius.circular(20.h),
+                  ),
                 ),
               ),
             ),
           ),
-          // 정보 항목들
+          // 첫 재배 정보
           Positioned(
-            left: 37.h,
+            left: 32.h,
             top: 133.h,
-            child: _buildInfoItem(
-              '첫 재배',
-              DateFormat('yyyy\n9/5').format(_firstPlantDate),
-            ),
+            child: _buildFirstPlantingInfo(),
           ),
+          // 재배일수
           Positioned(
-            left: 197.h,
+            left: 165.h,
             top: 133.h,
             child: _buildInfoItem(
               '재배일수',
               '$_cultivationDays일',
             ),
           ),
+          // 사진수
           Positioned(
-            left: 302.h,
+            left: 265.h,
             top: 133.h,
             child: _buildInfoItem(
               '사진수',
@@ -412,38 +429,115 @@ class _DiaryScreenState extends State<DiaryScreen> {
           ),
           // 타임랩스 버튼
           Positioned(
-            left: 145.h,
+            left: 140.h, // 130.h에서 140.h로 조정하여 더 중앙에 배치
             top: 207.h,
             child: InkWell(
               onTap: _goToTimelapse,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 14.h, vertical: 6.h),
-                decoration: BoxDecoration(
+                padding: EdgeInsets.symmetric(horizontal: 22.h, vertical: 6.h),
+                decoration: ShapeDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      appTheme.green_200,
-                      appTheme.green_200.withOpacity(0),
+                      appTheme.green_200,  // #A0ECB1 - custom_top_tab과 동일
+                      appTheme.teal_400,   // #32C697 - custom_top_tab과 동일 (투명도 제거)
                     ],
                   ),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20.h),
-                    topRight: Radius.circular(20.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20.h),
+                      topRight: Radius.circular(20.h),
+                    ),
                   ),
                 ),
                 child: Text(
                   '타임랩스',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: appTheme.white_A700,
+                    color: const Color(0xFFFDFEFB),
                     fontSize: 14.fSize,
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w600,
                     height: 1.0,
+                    letterSpacing: -0.35,
                   ),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 첫 재배 정보 위젯 (Figma 디자인)
+  Widget _buildFirstPlantingInfo() {
+    return SizedBox(
+      width: 95.h, // 120.h에서 95.h로 감소
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 95.h,
+            child: Text(
+              '첫 재배',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: const Color(0xFF37705E),
+                fontSize: 14.fSize,
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w700,
+                height: 1.0,
+                letterSpacing: -0.35,
+              ),
+            ),
+          ),
+          SizedBox(height: 11.h),
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '${_firstPlantDate.year}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: const Color(0xFF797979),
+                    fontSize: 16.fSize,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w500,
+                    height: 1.0,
+                    letterSpacing: -0.40,
+                  ),
+                ),
+                SizedBox(width: 6.h), // 9.h에서 6.h로 감소
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 2.h), // 15.h에서 12.h로 감소
+                  decoration: ShapeDecoration(
+                    color: const Color(0xFFE3FAE8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.h),
+                    ),
+                  ),
+                  child: Text(
+                    '${_firstPlantDate.month}/${_firstPlantDate.day}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: const Color(0xFF797979),
+                      fontSize: 16.fSize,
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w500,
+                      height: 1.0,
+                      letterSpacing: -0.40,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -455,15 +549,18 @@ class _DiaryScreenState extends State<DiaryScreen> {
   Widget _buildInfoItem(String label, String value) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           label,
           style: TextStyle(
-            color: appTheme.blue_gray_700,
+            color: const Color(0xFF37705E),
             fontSize: 14.fSize,
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w700,
             height: 1.0,
+            letterSpacing: -0.35,
           ),
         ),
         SizedBox(height: 12.h),
@@ -471,11 +568,12 @@ class _DiaryScreenState extends State<DiaryScreen> {
           value,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Color(0xFF797979),
+            color: const Color(0xFF797979),
             fontSize: 16.fSize,
             fontFamily: 'Pretendard',
             fontWeight: FontWeight.w500,
             height: 1.0,
+            letterSpacing: -0.40,
           ),
         ),
       ],
@@ -513,7 +611,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
       width: double.infinity,
       height: 50.h,
       decoration: BoxDecoration(
-        color: appTheme.green_50,
+        color: const Color(0xFFE3FAE8),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20.h),
           topRight: Radius.circular(20.h),
@@ -522,24 +620,37 @@ class _DiaryScreenState extends State<DiaryScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
-            icon: Icon(Icons.chevron_left, color: appTheme.teal_400),
-            onPressed: _goToPreviousMonth,
+          SizedBox(
+            width: 16.h,
+            height: 22.h,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: Icon(Icons.chevron_left, color: const Color(0xFF32C697), size: 22.h),
+              onPressed: _goToPreviousMonth,
+            ),
           ),
+          SizedBox(width: 10.h),
           Text(
             '${_currentMonth.year}년 ${_currentMonth.month}월',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: appTheme.teal_400,
+              color: const Color(0xFF32C697),
               fontSize: 16.fSize,
               fontFamily: 'Pretendard',
               fontWeight: FontWeight.w500,
               height: 1.0,
+              letterSpacing: -0.40,
             ),
           ),
-          IconButton(
-            icon: Icon(Icons.chevron_right, color: appTheme.teal_400),
-            onPressed: _goToNextMonth,
+          SizedBox(width: 10.h),
+          SizedBox(
+            width: 16.h,
+            height: 22.h,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: Icon(Icons.chevron_right, color: const Color(0xFF32C697), size: 22.h),
+              onPressed: _goToNextMonth,
+            ),
           ),
         ],
       ),
@@ -549,41 +660,39 @@ class _DiaryScreenState extends State<DiaryScreen> {
   /// 요일 헤더
   Widget _buildWeekDaysHeader() {
     final weekDays = ['일', '월', '화', '수', '목', '금', '토'];
-    return Container(
-      height: 43.h,
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: appTheme.teal_400, width: 1),
-        ),
-      ),
-      child: Row(
-        children: weekDays.map((day) {
-          final isWeekend = day == '일' || day == '토';
-          return Expanded(
-            child: Container(
-              height: 43.h,
-              decoration: BoxDecoration(
-                color: appTheme.green_50,
-                border: Border(
-                  right: BorderSide(color: appTheme.teal_400, width: 1),
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  day,
-                  style: TextStyle(
-                    color: appTheme.blue_gray_700,
-                    fontSize: 14.fSize,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                    height: 1.2,
-                  ),
-                ),
+    final widths = [52.0, 51.0, 52.0, 51.0, 52.0, 51.0, 52.0]; // Figma 디자인의 각 셀 너비
+
+    return Row(
+      children: List.generate(7, (index) {
+        final day = weekDays[index];
+        return Container(
+          width: widths[index].h,
+          height: 43.h,
+          clipBehavior: Clip.antiAlias,
+          decoration: ShapeDecoration(
+            color: const Color(0xFFE3FAE8),
+            shape: RoundedRectangleBorder(
+              side: BorderSide(
+                width: 1,
+                color: const Color(0xFF32C697),
               ),
             ),
-          );
-        }).toList(),
-      ),
+          ),
+          child: Center(
+            child: Text(
+              day,
+              style: TextStyle(
+                color: const Color(0xFF37705E),
+                fontSize: 14.fSize,
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+                letterSpacing: -0.35,
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -601,11 +710,14 @@ class _DiaryScreenState extends State<DiaryScreen> {
         DateTime(_currentMonth.year, _currentMonth.month, 0).day;
 
     List<Widget> dayWidgets = [];
+    final widths = [51.57, 51.57, 51.57, 51.57, 51.57, 51.57, 51.57]; // Figma 디자인의 각 날짜 셀 너비
 
     // 이전 달 날짜들
     for (int i = firstWeekday - 1; i >= 0; i--) {
+      final weekday = (firstWeekday - 1 - i) % 7;
       dayWidgets.add(_buildDayCell(
         lastDayOfPrevMonth - i,
+        width: widths[weekday],
         isCurrentMonth: false,
       ));
     }
@@ -614,14 +726,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_currentMonth.year, _currentMonth.month, day);
       final hasDiary = _diaryEntries.containsKey(date);
-      final isWeekend = date.weekday == DateTime.sunday ||
-          date.weekday == DateTime.saturday;
+      final weekday = (firstWeekday + day - 1) % 7;
 
       dayWidgets.add(_buildDayCell(
         day,
+        width: widths[weekday],
         date: date,
         isCurrentMonth: true,
-        isWeekend: isWeekend,
         hasDiary: hasDiary,
       ));
     }
@@ -629,8 +740,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
     // 다음 달 날짜들
     final remainingCells = 42 - dayWidgets.length; // 6주 * 7일
     for (int day = 1; day <= remainingCells; day++) {
+      final weekday = (firstWeekday + daysInMonth + day - 1) % 7;
       dayWidgets.add(_buildDayCell(
         day,
+        width: widths[weekday],
         isCurrentMonth: false,
       ));
     }
@@ -650,61 +763,67 @@ class _DiaryScreenState extends State<DiaryScreen> {
   /// 날짜 셀
   Widget _buildDayCell(
       int day, {
+        required double width,
         DateTime? date,
         bool isCurrentMonth = true,
-        bool isWeekend = false,
         bool hasDiary = false,
       }) {
     Color textColor;
     if (!isCurrentMonth) {
-      textColor = appTheme.blue_gray_100;
-    } else if (isWeekend && date?.weekday == DateTime.sunday) {
-      textColor = Color(0xFFEC7243); // 일요일 빨간색
-    } else if (isWeekend && date?.weekday == DateTime.saturday) {
-      textColor = appTheme.teal_400; // 토요일 청록색
+      textColor = const Color(0xFFD3D3D3); // 이전/다음 달 날짜는 회색
+    } else if (date?.weekday == DateTime.sunday) {
+      textColor = const Color(0xFFEC7243); // 일요일 빨간색
+    } else if (date?.weekday == DateTime.saturday) {
+      textColor = const Color(0xFF32C697); // 토요일 녹색
     } else {
-      textColor = Color(0xFF1B1B1B);
+      textColor = const Color(0xFF1B1B1B); // 평일 검은색
     }
 
-    return Expanded(
-      child: InkWell(
-        onTap: isCurrentMonth && date != null ? () => _onDateTapped(date) : null,
-        child: Container(
-          height: 52.h,
-          decoration: BoxDecoration(
-            color: appTheme.white_A700,
-            border: Border.all(color: appTheme.blue_gray_100, width: 1),
+    return InkWell(
+      onTap: isCurrentMonth && date != null ? () => _onDateTapped(date) : null,
+      child: Container(
+        width: width.h,
+        height: 52.h,
+        clipBehavior: Clip.antiAlias,
+        decoration: ShapeDecoration(
+          color: const Color(0xFFFDFEFB),
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              width: 1,
+              color: const Color(0xFFD3D3D3),
+            ),
           ),
-          child: Stack(
-            children: [
-              // 날짜 텍스트
-              Positioned(
-                left: 4.h,
-                top: 4.h,
-                child: Text(
-                  '$day',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 14.fSize,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w400,
-                    height: 1.2,
-                  ),
+        ),
+        child: Stack(
+          children: [
+            // 날짜 텍스트
+            Positioned(
+              left: day < 10 ? 4.h : 3.h, // 한 자리 숫자는 4, 두 자리 숫자는 3
+              top: 4.h,
+              child: Text(
+                '$day',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 14.fSize,
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w400,
+                  height: 1.2,
+                  letterSpacing: -0.35,
                 ),
               ),
-              // 다이어리 아이콘
-              if (hasDiary)
-                Positioned(
-                  right: 4.h,
-                  bottom: 4.h,
-                  child: Icon(
-                    Icons.eco,
-                    size: 16.h,
-                    color: appTheme.teal_400,
-                  ),
+            ),
+            // 다이어리 아이콘
+            if (hasDiary)
+              Positioned(
+                right: 4.h,
+                bottom: 4.h,
+                child: Icon(
+                  Icons.eco,
+                  size: 16.h,
+                  color: const Color(0xFF32C697),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
