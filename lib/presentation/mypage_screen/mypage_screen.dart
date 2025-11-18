@@ -34,10 +34,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 child: Column(
                   children: [
                     _buildProfileSection(),
-                    SizedBox(height: 59.h),
+                    SizedBox(height: 48.h),
                     _buildSettingsSection(),
-                    SizedBox(height: 36.h),
+                    SizedBox(height: 24.h),
                     _buildLogoutButton(),
+                    SizedBox(height: 24.h),
                   ],
                 ),
               ),
@@ -46,7 +47,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
         ),
       ),
       bottomNavigationBar: CustomBottomNavBar(
-        activeRoute: '', // 마이페이지는 하단 네비게이션에 없음
+        activeRoute: AppRoutes.homeScreen,
       ),
     );
   }
@@ -56,7 +57,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
-        top: 70.h,
+        top: 59.h,
         bottom: 39.h,
       ),
       decoration: BoxDecoration(
@@ -84,13 +85,15 @@ class _MyPageScreenState extends State<MyPageScreen> {
               letterSpacing: -0.32,
             ),
           ),
-          SizedBox(height: 43.h),
+          SizedBox(height: 61.h),
           // 프로필 카드
           Container(
             width: 361.w,
-            padding: EdgeInsets.symmetric(
-              horizontal: 37.w,
-              vertical: 25.h,
+            padding: EdgeInsets.only(
+              left: 37.w,
+              right: 37.w,
+              top: 25.h,
+              bottom: 25.h,
             ),
             decoration: BoxDecoration(
               color: appTheme.white_A700,
@@ -119,7 +122,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                     color: appTheme.teal_400,
                   ),
                 ),
-                SizedBox(width: 28.w),
+                SizedBox(width: 41.w),
                 // 프로필 정보
                 Expanded(
                   child: Column(
@@ -136,7 +139,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                           letterSpacing: -0.35,
                         ),
                       ),
-                      SizedBox(height: 8.h),
+                      SizedBox(height: 19.h),
                       Text(
                         'hansung1234@gmail.com',
                         style: TextStyle(
@@ -148,7 +151,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                           letterSpacing: -0.30,
                         ),
                       ),
-                      SizedBox(height: 16.h),
+                      SizedBox(height: 13.h),
                       // 프로필 수정 버튼
                       GestureDetector(
                         onTap: () {
@@ -202,7 +205,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Widget _buildSettingsSection() {
     return Container(
       width: 361.w,
-      padding: EdgeInsets.all(24.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: 24.w,
+        vertical: 18.h,
+      ),
       decoration: BoxDecoration(
         color: appTheme.white_A700,
         borderRadius: BorderRadius.circular(20.h),
@@ -229,7 +235,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
               letterSpacing: -0.40,
             ),
           ),
-          SizedBox(height: 19.h),
+          SizedBox(height: 35.h),
           // 푸시 알림
           _buildSettingItem(
             icon: Icons.notifications_none_outlined,

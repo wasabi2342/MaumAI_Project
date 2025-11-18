@@ -59,9 +59,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     _buildProfileHeader(),
                     SizedBox(height: 29.h),
                     _buildBasicInfoSection(),
-                    SizedBox(height: 51.h),
+                    SizedBox(height: 20.h),
                     _buildPasswordSection(),
-                    SizedBox(height: 67.h),
+                    SizedBox(height: 24.h),
                     _buildSaveButton(),
                     SizedBox(height: 24.h),
                   ],
@@ -72,7 +72,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         ),
       ),
       bottomNavigationBar: CustomBottomNavBar(
-        activeRoute: '', // 프로필 수정은 하단 네비게이션에 없음
+        activeRoute: AppRoutes.homeScreen,
       ),
     );
   }
@@ -82,9 +82,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
-        left: 39.w,
-        right: 39.w,
-        top: 57.h,
+        top: 59.h,
         bottom: 0,
       ),
       decoration: BoxDecoration(
@@ -162,7 +160,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           letterSpacing: -0.35,
                         ),
                       ),
-                      SizedBox(height: 8.h),
+                      SizedBox(height: 21.h),
                       Text(
                         'hansung1234@gmail.com',
                         style: TextStyle(
@@ -379,7 +377,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
             ),
           ),
-          SizedBox(height: 6.h),
+          SizedBox(height: 18.h),
           // 비밀번호 입력
           Container(
             height: 34.h,
@@ -422,7 +420,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
             ),
           ),
-          SizedBox(height: 53.h),
+          SizedBox(height: 34.h),
           // 비밀번호 확인 라벨
           Padding(
             padding: EdgeInsets.only(left: 10.w),
@@ -438,7 +436,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
             ),
           ),
-          SizedBox(height: 6.h),
+          SizedBox(height: 18.h),
           // 비밀번호 확인 입력
           Container(
             height: 34.h,
