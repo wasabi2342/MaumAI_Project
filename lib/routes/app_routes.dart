@@ -35,11 +35,11 @@ class AppRoutes {
     deviceSelectionScreen: (context) => DeviceSelectionScreen(),
     plantSelectionScreen: (context) => PlantSelectionScreen(),
     homeScreen: (context) => HomeScreen(),
-    diaryScreen: (context) => DiaryScreen(),
+    diaryScreen: (context) => DiaryScreenWithAPI(userPlantId: 1), // TODO: 실제 userPlantId 전달
     diagnosisScreen: (context) => DiagnosisScreen(),
     controlScreen: (context) => ControlScreen(),
     appNavigationScreen: (context) => AppNavigationScreen(),
     myPageScreen: (context) => MyPageScreen(),
-    profileEditScreen: (context) => ProfileEditScreen(),
+    profileEditScreen: (context) => ProfileEditScreenWithAPI(),
   };
 }

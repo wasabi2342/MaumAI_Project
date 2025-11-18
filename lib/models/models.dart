@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 // ============================================
 // 사용자 관련 모델
 // ============================================
 
+/// 사용자 프로필 응답 (UserProfileResponse)
 class UserProfile {
   final int id;
   final String nickname;
@@ -36,26 +36,27 @@ class UserProfile {
       'id': id,
       'nickname': nickname,
       'email': email,
-      'job': job,
-      'age': age,
-      'gender': gender,
+      if (job != null) 'job': job,
+      if (age != null) 'age': age,
+      if (gender != null) 'gender': gender,
     };
   }
 }
 
 // ============================================
-// 식물 정보 모델
+// 식물 정보 관련 모델
 // ============================================
 
+/// 식물 정보 응답 (PlantInfoResponse)
 class PlantInfo {
   final int id;
   final String name;
-  final String? difficulty; // "EASY", "MEDIUM", "HARD"
+  final String? difficulty; // EASY, MEDIUM, HARD
   final double? tempMin;
   final double? tempMax;
   final double? humidityMin;
   final double? humidityMax;
-  final String? lightLevel;
+  final String? lightLevel; // LOW, MEDIUM, HIGH
   final String? ledInfo;
   final double? ecMin;
   final double? ecMax;
@@ -90,8 +91,8 @@ class PlantInfo {
     );
   }
 
-  // 난이도를 한글로 변환
-  String get difficultyKo {
+  /// 난이도 한글 변환
+  String get difficultyKorean {
     switch (difficulty) {
       case 'EASY':
         return '쉬움';
@@ -100,34 +101,59 @@ class PlantInfo {
       case 'HARD':
         return '어려움';
       default:
-        return '-';
+        return '알 수 없음';
     }
   }
 
-  // 난이도 색상
-  Color get difficultyColor {
-    switch (difficulty) {
-      case 'EASY':
-        return Colors.green;
+  /// 조도 한글 변환
+  String get lightLevelKorean {
+    switch (lightLevel) {
+      case 'LOW':
+        return '낮음';
       case 'MEDIUM':
-        return Colors.orange;
-      case 'HARD':
-        return Colors.red;
+        return '중간';
+      case 'HIGH':
+        return '높음';
       default:
-        return Colors.grey;
+        return '알 수 없음';
     }
+  }
+
+  /// 적정 온도 범위 문자열
+  String get temperatureRange {
+    if (tempMin != null && tempMax != null) {
+      return '${tempMin}°C ~ ${tempMax}°C';
+    }
+    return '-';
+  }
+
+  /// 적정 습도 범위 문자열
+  String get humidityRange {
+    if (humidityMin != null && humidityMax != null) {
+      return '${humidityMin}% ~ ${humidityMax}%';
+    }
+    return '-';
+  }
+
+  /// EC 범위 문자열
+  String get ecRange {
+    if (ecMin != null && ecMax != null) {
+      return '$ecMin ~ $ecMax';
+    }
+    return '-';
   }
 }
 
 // ============================================
-// 내 식물 모델
+// 사용자 식물 관련 모델
 // ============================================
 
+/// 사용자 식물 응답 (UserPlantResponse)
 class UserPlant {
   final int id;
-  final String plantName; // 식물 종류 이름 (예: 상추)
-  final String? nickname; // 사용자가 붙인 별칭
-  final DateTime startedAt; // 재배 시작일
+  final String plantName;
+  final String? nickname;
+  final DateTime startedAt;
 
   UserPlant({
     required this.id,
@@ -145,19 +171,58 @@ class UserPlant {
     );
   }
 
-  // 표시용 이름 (별칭이 있으면 별칭, 없으면 식물 이름)
-  String get displayName => nickname ?? plantName;
-
-  // 재배 일수 계산
+  /// 재배 일수 계산
   int get daysSincePlanted {
     return DateTime.now().difference(startedAt).inDays + 1;
   }
+
+  /// 표시용 이름 (별칭이 있으면 별칭, 없으면 식물 이름)
+  String get displayName => nickname ?? plantName;
 }
 
 // ============================================
-// 다이어리 캘린더 모델
+// 다이어리 관련 모델
 // ============================================
 
+/// 다이어리 응답 (DiaryResponse)
+class Diary {
+  final int id;
+  final int userPlantId;
+  final DateTime diaryDate;
+  final String? content;
+  final String? imageUrl;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+
+  Diary({
+    required this.id,
+    required this.userPlantId,
+    required this.diaryDate,
+    this.content,
+    this.imageUrl,
+    required this.createdAt,
+    this.updatedAt,
+  });
+
+  factory Diary.fromJson(Map<String, dynamic> json) {
+    return Diary(
+      id: json['id'],
+      userPlantId: json['userPlantId'],
+      diaryDate: DateTime.parse(json['diaryDate']),
+      content: json['content'],
+      imageUrl: json['imageUrl'],
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+    );
+  }
+
+  /// 이미지가 있는지 확인
+  bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
+}
+
+/// 다이어리 달력 일별 정보 (DiaryCalendarDayDto)
 class DiaryCalendarDay {
   final DateTime date;
   final bool hasDiary;
@@ -181,6 +246,7 @@ class DiaryCalendarDay {
   }
 }
 
+/// 다이어리 달력 응답 (DiaryCalendarResponse)
 class DiaryCalendar {
   final int userPlantId;
   final String? plantNickname;
@@ -222,87 +288,26 @@ class DiaryCalendar {
     );
   }
 
-  // 특정 날짜의 다이어리 찾기
-  DiaryCalendarDay? getDayByDate(DateTime date) {
-    try {
-      return days.firstWhere(
-        (day) =>
-            day.date.year == date.year &&
-            day.date.month == date.month &&
-            day.date.day == date.day,
-      );
-    } catch (e) {
-      return null;
-    }
-  }
+  /// 식물 표시 이름
+  String get displayPlantName => plantNickname ?? plantName ?? '내 식물';
 }
 
-// ============================================
-// 다이어리 모델
-// ============================================
-
-class Diary {
-  final int id;
-  final int userPlantId;
-  final DateTime diaryDate;
-  final String? content;
-  final String? imageUrl;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
-
-  Diary({
-    required this.id,
-    required this.userPlantId,
-    required this.diaryDate,
-    this.content,
-    this.imageUrl,
-    required this.createdAt,
-    this.updatedAt,
-  });
-
-  factory Diary.fromJson(Map<String, dynamic> json) {
-    return Diary(
-      id: json['id'],
-      userPlantId: json['userPlantId'],
-      diaryDate: DateTime.parse(json['diaryDate']),
-      content: json['content'],
-      imageUrl: json['imageUrl'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt:
-          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
-    );
-  }
-
-  // 수정 여부
-  bool get isEdited => updatedAt != null;
-
-  // 전체 이미지 URL (서버 주소 포함)
-  String? getFullImageUrl(String baseUrl) {
-    if (imageUrl == null) return null;
-    if (imageUrl!.startsWith('http')) return imageUrl;
-    return '$baseUrl$imageUrl';
-  }
-}
-
-// ============================================
-// 타임라인 모델
-// ============================================
-
-class TimelineItem {
+/// 타임라인 아이템 (DiaryTimelineItemDto)
+class DiaryTimelineItem {
   final int id;
   final DateTime diaryDate;
   final String? imageUrl;
   final String? content;
 
-  TimelineItem({
+  DiaryTimelineItem({
     required this.id,
     required this.diaryDate,
     this.imageUrl,
     this.content,
   });
 
-  factory TimelineItem.fromJson(Map<String, dynamic> json) {
-    return TimelineItem(
+  factory DiaryTimelineItem.fromJson(Map<String, dynamic> json) {
+    return DiaryTimelineItem(
       id: json['id'],
       diaryDate: DateTime.parse(json['diaryDate']),
       imageUrl: json['imageUrl'],
@@ -311,50 +316,40 @@ class TimelineItem {
   }
 }
 
-class Timeline {
+/// 타임라인 응답 (DiaryTimelineResponse)
+class DiaryTimeline {
   final int userPlantId;
   final String? plantNickname;
   final String? plantName;
-  final List<TimelineItem> items;
+  final List<DiaryTimelineItem> items;
 
-  Timeline({
+  DiaryTimeline({
     required this.userPlantId,
     this.plantNickname,
     this.plantName,
     required this.items,
   });
 
-  factory Timeline.fromJson(Map<String, dynamic> json) {
-    return Timeline(
+  factory DiaryTimeline.fromJson(Map<String, dynamic> json) {
+    return DiaryTimeline(
       userPlantId: json['userPlantId'],
       plantNickname: json['plantNickname'],
       plantName: json['plantName'],
       items: (json['items'] as List)
-          .map((item) => TimelineItem.fromJson(item))
+          .map((item) => DiaryTimelineItem.fromJson(item))
           .toList(),
     );
   }
 
-  // 월별로 그룹화
-  Map<String, List<TimelineItem>> groupByMonth() {
-    Map<String, List<TimelineItem>> grouped = {};
-
-    for (var item in items) {
-      String key = '${item.diaryDate.year}년 ${item.diaryDate.month}월';
-      if (!grouped.containsKey(key)) {
-        grouped[key] = [];
-      }
-      grouped[key]!.add(item);
-    }
-
-    return grouped;
-  }
+  /// 식물 표시 이름
+  String get displayPlantName => plantNickname ?? plantName ?? '내 식물';
 }
 
 // ============================================
-// 센서 데이터 모델 (추후 백엔드 API 추가 필요)
+// 센서 데이터 관련 모델 (향후 확장용)
 // ============================================
 
+/// 센서 로그 데이터
 class SensorLog {
   final int id;
   final int deviceId;
@@ -388,32 +383,13 @@ class SensorLog {
       createdAt: DateTime.parse(json['createdAt']),
     );
   }
-
-  // 온도 상태 (적정 범위 기준)
-  String getTemperatureStatus(double? optimalMin, double? optimalMax) {
-    if (temperature == null || optimalMin == null || optimalMax == null) {
-      return '측정 중';
-    }
-    if (temperature! < optimalMin) return '낮음';
-    if (temperature! > optimalMax) return '높음';
-    return '적정';
-  }
-
-  // 습도 상태
-  String getHumidityStatus(double? optimalMin, double? optimalMax) {
-    if (humidity == null || optimalMin == null || optimalMax == null) {
-      return '측정 중';
-    }
-    if (humidity! < optimalMin) return '낮음';
-    if (humidity! > optimalMax) return '높음';
-    return '적정';
-  }
 }
 
 // ============================================
-// 장치 모델 (추후 필요시 사용)
+// 장치 관련 모델 (향후 확장용)
 // ============================================
 
+/// 장치 정보
 class Device {
   final int id;
   final int? userId;

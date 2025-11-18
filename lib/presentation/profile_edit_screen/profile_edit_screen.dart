@@ -1,542 +1,523 @@
-// 파일 경로: lib/presentation/profile_edit_screen/profile_edit_screen.dart
-
 import 'package:flutter/material.dart';
-import '../../core/app_export.dart';
 
-/// 프로필 수정 화면
+import '../../core/app_export.dart';
+import '../../widgets/custom_button.dart';
+import '../../widgets/custom_text_form_field.dart';
+import '../../widgets/custom_dropdown.dart';
+import '../../services/api_service.dart';
+import '../../models/models.dart';
+
+/// ProfileEditScreen with API Integration
 ///
-/// 기능:
-/// - 프로필 사진, 이름, 이메일 표시
-/// - 성별, 나이, 직업 수정
-/// - 비밀번호 변경
-/// - 저장 버튼
-class ProfileEditScreen extends StatefulWidget {
-  const ProfileEditScreen({Key? key}) : super(key: key);
+/// 백엔드 프로필 API와 연동:
+/// - GET /api/users/{id} : 프로필 조회
+/// - PUT /api/users/{id}/profile : 프로필 수정
+/// - PUT /api/users/{id}/password : 비밀번호 변경
+class ProfileEditScreenWithAPI extends StatefulWidget {
+  const ProfileEditScreenWithAPI({Key? key}) : super(key: key);
 
   @override
-  State<ProfileEditScreen> createState() => _ProfileEditScreenState();
+  State<ProfileEditScreenWithAPI> createState() =>
+      _ProfileEditScreenWithAPIState();
 }
 
-class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  final TextEditingController _ageController = TextEditingController(text: '20');
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _passwordConfirmController = TextEditingController();
+class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController nicknameController = TextEditingController();
+  final TextEditingController jobController = TextEditingController();
+  final TextEditingController ageController = TextEditingController();
+  final TextEditingController currentPasswordController =
+  TextEditingController();
+  final TextEditingController newPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+  TextEditingController();
 
-  String _selectedGender = '남자';
-  String? _selectedJob;
+  String? selectedGender;
+  bool isLoading = true;
+  bool isChangingPassword = false;
+  UserProfile? currentProfile;
 
-  final List<String> _genders = ['남자', '여자', '기타'];
-  final List<String> _jobs = [
-    '학생',
-    '직장인',
-    '자영업',
-    '주부',
-    '프리랜서',
-    '무직',
-    '기타',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
 
   @override
   void dispose() {
-    _ageController.dispose();
-    _passwordController.dispose();
-    _passwordConfirmController.dispose();
+    nicknameController.dispose();
+    jobController.dispose();
+    ageController.dispose();
+    currentPasswordController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  /// 프로필 로드
+  Future<void> _loadProfile() async {
+    if (ApiService.currentUserId == null) {
+      Navigator.pop(context);
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final response = await ApiService.getProfile(ApiService.currentUserId!);
+      final profile = UserProfile.fromJson(response);
+
+      setState(() {
+        currentProfile = profile;
+        nicknameController.text = profile.nickname;
+        jobController.text = profile.job ?? '';
+        ageController.text = profile.age?.toString() ?? '';
+        selectedGender = profile.gender;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      _showErrorSnackBar('프로필을 불러올 수 없습니다.');
+      print('프로필 로드 실패: $e');
+    }
+  }
+
+  /// 프로필 업데이트
+  Future<void> _updateProfile() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final response = await ApiService.updateProfile(
+        userId: ApiService.currentUserId!,
+        nickname: nicknameController.text.trim(),
+        job: jobController.text.trim().isNotEmpty
+            ? jobController.text.trim()
+            : null,
+        age: int.tryParse(ageController.text.trim()),
+        gender: selectedGender,
+      );
+
+      final updatedProfile = UserProfile.fromJson(response);
+
+      setState(() {
+        currentProfile = updatedProfile;
+        isLoading = false;
+      });
+
+      _showSuccessSnackBar('프로필이 수정되었습니다.');
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      _showErrorSnackBar('프로필 수정에 실패했습니다.');
+      print('프로필 수정 실패: $e');
+    }
+  }
+
+  /// 비밀번호 변경
+  Future<void> _changePassword() async {
+    if (currentPasswordController.text.isEmpty ||
+        newPasswordController.text.isEmpty ||
+        confirmPasswordController.text.isEmpty) {
+      _showErrorSnackBar('모든 비밀번호 필드를 입력해주세요.');
+      return;
+    }
+
+    if (newPasswordController.text != confirmPasswordController.text) {
+      _showErrorSnackBar('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    if (newPasswordController.text.length < 6) {
+      _showErrorSnackBar('새 비밀번호는 6자 이상이어야 합니다.');
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      await ApiService.changePassword(
+        userId: ApiService.currentUserId!,
+        currentPassword: currentPasswordController.text,
+        newPassword: newPasswordController.text,
+        newPasswordConfirm: confirmPasswordController.text,
+      );
+
+      setState(() {
+        isLoading = false;
+        isChangingPassword = false;
+      });
+
+      // 비밀번호 필드 초기화
+      currentPasswordController.clear();
+      newPasswordController.clear();
+      confirmPasswordController.clear();
+
+      _showSuccessSnackBar('비밀번호가 변경되었습니다.');
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+
+      String errorMessage;
+      if (e.toString().contains('현재 비밀번호')) {
+        errorMessage = '현재 비밀번호가 올바르지 않습니다.';
+      } else if (e.toString().contains('일치')) {
+        errorMessage = '새 비밀번호가 일치하지 않습니다.';
+      } else {
+        errorMessage = '비밀번호 변경에 실패했습니다.';
+      }
+
+      _showErrorSnackBar(errorMessage);
+      print('비밀번호 변경 실패: $e');
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: appTheme.teal_400,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: appTheme.green_50,
-      appBar: CustomTopAppBar(),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildProfileHeader(),
-                    SizedBox(height: 29.h),
-                    _buildBasicInfoSection(),
-                    SizedBox(height: 20.h),
-                    _buildPasswordSection(),
-                    SizedBox(height: 24.h),
-                    _buildSaveButton(),
-                    SizedBox(height: 24.h),
-                  ],
-                ),
-              ),
-            ),
-          ],
+      appBar: AppBar(
+        title: Text(
+          '프로필 수정',
+          style: TextStyle(
+            color: appTheme.teal_400,
+            fontSize: 18.fSize,
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: appTheme.teal_400),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        activeRoute: AppRoutes.homeScreen,
-      ),
-    );
-  }
-
-  /// 프로필 헤더 (프로필 사진 + 이름/이메일)
-  Widget _buildProfileHeader() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.only(
-        top: 59.h,
-        bottom: 0,
-      ),
-      decoration: BoxDecoration(
-        color: appTheme.green_50,
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x66D3D3D3),
-            blurRadius: 8,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // 프로필 수정 타이틀
-          Text(
-            '프로필 수정',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: appTheme.teal_400,
-              fontSize: 14.fSize,
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w600,
-              height: 1.50,
-              letterSpacing: -0.32,
-            ),
-          ),
-          SizedBox(height: 52.h),
-          // 프로필 카드
-          Container(
-            width: 315.w,
-            padding: EdgeInsets.only(
-              left: 25.w,
-              right: 25.w,
-              top: 9.h,
-              bottom: 16.h,
-            ),
-            decoration: BoxDecoration(
-              color: appTheme.white_A700,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20.h),
-                topRight: Radius.circular(20.h),
-              ),
-            ),
-            child: Row(
+      body: isLoading
+          ? Center(
+        child: CircularProgressIndicator(
+          color: appTheme.teal_400,
+        ),
+      )
+          : SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(20.h),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 프로필 사진
-                Container(
-                  width: 90.h,
-                  height: 90.h,
-                  decoration: BoxDecoration(
-                    color: appTheme.green_50,
-                    borderRadius: BorderRadius.circular(200.h),
-                  ),
-                  child: Icon(
-                    Icons.person_outline,
-                    size: 50.h,
-                    color: appTheme.teal_400,
-                  ),
-                ),
-                SizedBox(width: 32.w),
-                // 프로필 정보
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '홍길동',
-                        style: TextStyle(
-                          color: Color(0xFF797979),
-                          fontSize: 14.fSize,
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w700,
-                          height: 1,
-                          letterSpacing: -0.35,
-                        ),
-                      ),
-                      SizedBox(height: 21.h),
-                      Text(
-                        'hansung1234@gmail.com',
-                        style: TextStyle(
-                          color: Color(0xFF797979),
-                          fontSize: 12.fSize,
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w500,
-                          height: 1,
-                          letterSpacing: -0.30,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildProfileSection(),
+                SizedBox(height: 32.h),
+                _buildPasswordSection(),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  /// 기본 정보 섹션 (성별, 나이, 직업)
-  Widget _buildBasicInfoSection() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 46.w),
-      child: Column(
-        children: [
-          // 성별과 나이
-          Row(
-            children: [
-              // 성별 드롭다운
-              Expanded(
-                flex: 137,
-                child: Container(
-                  height: 34.h,
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  decoration: BoxDecoration(
-                    color: appTheme.white_A700,
-                    borderRadius: BorderRadius.circular(20.h),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x66D3D3D3),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedGender,
-                      isExpanded: true,
-                      icon: SizedBox.shrink(),
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14.fSize,
-                        fontFamily: 'Pretendard',
-                        fontWeight: FontWeight.w400,
-                        height: 1.20,
-                        letterSpacing: -0.35,
-                      ),
-                      items: _genders.map((gender) {
-                        return DropdownMenuItem<String>(
-                          value: gender,
-                          child: Text(gender),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedGender = value;
-                          });
-                        }
-                      },
-                    ),
+  Widget _buildProfileSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '기본 정보',
+          style: TextStyle(
+            color: appTheme.teal_400,
+            fontSize: 20.fSize,
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(height: 24.h),
+
+        // 이메일 (수정 불가)
+        _buildInputLabel('이메일'),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 12.h),
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(20.h),
+          ),
+          child: Text(
+            currentProfile?.email ?? '',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14.fSize,
+              fontFamily: 'Pretendard',
+            ),
+          ),
+        ),
+        SizedBox(height: 18.h),
+
+        // 닉네임
+        _buildInputLabel('닉네임'),
+        CustomTextFormField(
+          controller: nicknameController,
+          placeholder: '닉네임을 입력해 주세요.',
+          validator: _validateNickname,
+          fillColor: appTheme.white_A700,
+          borderColor: appTheme.color66D3D3,
+          focusedBorderColor: appTheme.colorFF66D3,
+          borderRadius: 20.h,
+          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
+          margin: EdgeInsets.only(top: 2.h),
+        ),
+        SizedBox(height: 18.h),
+
+        // 직업
+        _buildInputLabel('직업 (선택)'),
+        CustomTextFormField(
+          controller: jobController,
+          placeholder: '직업을 입력해 주세요.',
+          fillColor: appTheme.white_A700,
+          borderColor: appTheme.color66D3D3,
+          focusedBorderColor: appTheme.colorFF66D3,
+          borderRadius: 20.h,
+          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
+          margin: EdgeInsets.only(top: 2.h),
+        ),
+        SizedBox(height: 18.h),
+
+        // 나이
+        _buildInputLabel('나이 (선택)'),
+        CustomTextFormField(
+          controller: ageController,
+          placeholder: '나이를 입력해 주세요.',
+          keyboardType: TextInputType.number,
+          fillColor: appTheme.white_A700,
+          borderColor: appTheme.color66D3D3,
+          focusedBorderColor: appTheme.colorFF66D3,
+          borderRadius: 20.h,
+          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
+          margin: EdgeInsets.only(top: 2.h),
+        ),
+        SizedBox(height: 18.h),
+
+        // 성별
+        _buildInputLabel('성별 (선택)'),
+        SizedBox(height: 2.h),
+        CustomDropdown(
+          placeholder: '성별을 선택해 주세요.',
+          items: ['남성', '여성', '기타'],
+          selectedItem: selectedGender,
+          onChanged: (value) {
+            setState(() {
+              selectedGender = value;
+            });
+          },
+          borderRadius: 20.h,
+        ),
+        SizedBox(height: 32.h),
+
+        // 저장 버튼
+        CustomButton(
+          text: '저장',
+          onPressed: _updateProfile,
+          backgroundColor: appTheme.teal_400,
+          textColor: appTheme.white_A700,
+          width: double.infinity,
+          height: 38.h,
+          fontSize: 14.fSize,
+          fontWeight: FontWeight.w700,
+          borderRadius: 20.h,
+          padding: EdgeInsets.symmetric(horizontal: 30.h, vertical: 10.h),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '비밀번호 변경',
+              style: TextStyle(
+                color: appTheme.teal_400,
+                fontSize: 20.fSize,
+                fontFamily: 'Pretendard',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (!isChangingPassword)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    isChangingPassword = true;
+                  });
+                },
+                child: Text(
+                  '변경',
+                  style: TextStyle(
+                    color: appTheme.teal_400,
+                    fontSize: 14.fSize,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              SizedBox(width: 9.w),
-              // 나이 입력
+          ],
+        ),
+
+        if (isChangingPassword) ...[
+          SizedBox(height: 24.h),
+
+          // 현재 비밀번호
+          _buildInputLabel('현재 비밀번호'),
+          CustomTextFormField(
+            controller: currentPasswordController,
+            placeholder: '현재 비밀번호를 입력해 주세요.',
+            obscureText: true,
+            fillColor: appTheme.white_A700,
+            borderColor: appTheme.color66D3D3,
+            focusedBorderColor: appTheme.colorFF66D3,
+            borderRadius: 20.h,
+            contentPadding:
+            EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
+            margin: EdgeInsets.only(top: 2.h),
+          ),
+          SizedBox(height: 18.h),
+
+          // 새 비밀번호
+          _buildInputLabel('새 비밀번호'),
+          CustomTextFormField(
+            controller: newPasswordController,
+            placeholder: '새 비밀번호를 입력해 주세요.',
+            obscureText: true,
+            fillColor: appTheme.white_A700,
+            borderColor: appTheme.color66D3D3,
+            focusedBorderColor: appTheme.colorFF66D3,
+            borderRadius: 20.h,
+            contentPadding:
+            EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
+            margin: EdgeInsets.only(top: 2.h),
+          ),
+          SizedBox(height: 18.h),
+
+          // 새 비밀번호 확인
+          _buildInputLabel('새 비밀번호 확인'),
+          CustomTextFormField(
+            controller: confirmPasswordController,
+            placeholder: '새 비밀번호를 다시 입력해 주세요.',
+            obscureText: true,
+            fillColor: appTheme.white_A700,
+            borderColor: appTheme.color66D3D3,
+            focusedBorderColor: appTheme.colorFF66D3,
+            borderRadius: 20.h,
+            contentPadding:
+            EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
+            margin: EdgeInsets.only(top: 2.h),
+          ),
+          SizedBox(height: 32.h),
+
+          // 비밀번호 변경 버튼
+          Row(
+            children: [
               Expanded(
-                flex: 155,
-                child: Container(
-                  height: 34.h,
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  decoration: BoxDecoration(
-                    color: appTheme.white_A700,
-                    borderRadius: BorderRadius.circular(20.h),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x66D3D3D3),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _ageController,
-                          keyboardType: TextInputType.number,
-                          style: TextStyle(
-                            color: Color(0xFF797979),
-                            fontSize: 14.fSize,
-                            fontFamily: 'Pretendard',
-                            fontWeight: FontWeight.w500,
-                            height: 1.20,
-                            letterSpacing: -0.35,
-                          ),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        '세',
-                        style: TextStyle(
-                          color: Color(0xFFD3D3D3),
-                          fontSize: 14.fSize,
-                          fontFamily: 'Pretendard',
-                          fontWeight: FontWeight.w400,
-                          height: 1.20,
-                          letterSpacing: -0.35,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: CustomButton(
+                  text: '취소',
+                  onPressed: () {
+                    setState(() {
+                      isChangingPassword = false;
+                      currentPasswordController.clear();
+                      newPasswordController.clear();
+                      confirmPasswordController.clear();
+                    });
+                  },
+                  backgroundColor: Colors.grey[300]!,
+                  textColor: Colors.grey[700]!,
+                  height: 38.h,
+                  fontSize: 14.fSize,
+                  fontWeight: FontWeight.w700,
+                  borderRadius: 20.h,
+                  padding: EdgeInsets.symmetric(horizontal: 30.h, vertical: 10.h),
+                ),
+              ),
+              SizedBox(width: 12.h),
+              Expanded(
+                child: CustomButton(
+                  text: '변경',
+                  onPressed: _changePassword,
+                  backgroundColor: appTheme.teal_400,
+                  textColor: appTheme.white_A700,
+                  height: 38.h,
+                  fontSize: 14.fSize,
+                  fontWeight: FontWeight.w700,
+                  borderRadius: 20.h,
+                  padding: EdgeInsets.symmetric(horizontal: 30.h, vertical: 10.h),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 20.h),
-          // 직업 드롭다운
-          Container(
-            width: double.infinity,
-            height: 34.h,
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
-            decoration: BoxDecoration(
-              color: appTheme.white_A700,
-              borderRadius: BorderRadius.circular(20.h),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x66D3D3D3),
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedJob,
-                isExpanded: true,
-                hint: Text(
-                  '직업을 선택해 주세요.',
-                  style: TextStyle(
-                    color: Color(0xFFD3D3D3),
-                    fontSize: 14.fSize,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w400,
-                    height: 1.20,
-                    letterSpacing: -0.35,
-                  ),
-                ),
-                icon: SizedBox.shrink(),
-                style: TextStyle(
-                  color: Color(0xFF797979),
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w400,
-                  height: 1.20,
-                  letterSpacing: -0.35,
-                ),
-                items: _jobs.map((job) {
-                  return DropdownMenuItem<String>(
-                    value: job,
-                    child: Text(job),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedJob = value;
-                  });
-                },
-              ),
-            ),
-          ),
         ],
-      ),
+      ],
     );
   }
 
-  /// 비밀번호 변경 섹션
-  Widget _buildPasswordSection() {
+  Widget _buildInputLabel(String label) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 46.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 비밀번호 변경 라벨
-          Padding(
-            padding: EdgeInsets.only(left: 10.w),
-            child: Text(
-              '비밀번호 변경',
-              style: TextStyle(
-                color: appTheme.teal_400,
-                fontSize: 12.fSize,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w500,
-                height: 1,
-                letterSpacing: -0.30,
-              ),
-            ),
-          ),
-          SizedBox(height: 18.h),
-          // 비밀번호 입력
-          Container(
-            height: 34.h,
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
-            decoration: BoxDecoration(
-              color: appTheme.white_A700,
-              borderRadius: BorderRadius.circular(20.h),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x66D3D3D3),
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: _passwordController,
-              obscureText: true,
-              style: TextStyle(
-                color: Color(0xFF797979),
-                fontSize: 14.fSize,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w400,
-                height: 1.20,
-                letterSpacing: -0.35,
-              ),
-              decoration: InputDecoration(
-                hintText: '비밀번호를 입력해 주세요.',
-                hintStyle: TextStyle(
-                  color: Color(0xFFD3D3D3),
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w400,
-                  height: 1.20,
-                  letterSpacing: -0.35,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          SizedBox(height: 34.h),
-          // 비밀번호 확인 라벨
-          Padding(
-            padding: EdgeInsets.only(left: 10.w),
-            child: Text(
-              '비밀번호 변경 확인',
-              style: TextStyle(
-                color: appTheme.teal_400,
-                fontSize: 12.fSize,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w500,
-                height: 1,
-                letterSpacing: -0.30,
-              ),
-            ),
-          ),
-          SizedBox(height: 18.h),
-          // 비밀번호 확인 입력
-          Container(
-            height: 34.h,
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
-            decoration: BoxDecoration(
-              color: appTheme.white_A700,
-              borderRadius: BorderRadius.circular(20.h),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x66D3D3D3),
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: _passwordConfirmController,
-              obscureText: true,
-              style: TextStyle(
-                color: Color(0xFF797979),
-                fontSize: 14.fSize,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w400,
-                height: 1.20,
-                letterSpacing: -0.35,
-              ),
-              decoration: InputDecoration(
-                hintText: '비밀번호를 다시 입력해 주세요.',
-                hintStyle: TextStyle(
-                  color: Color(0xFFD3D3D3),
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w400,
-                  height: 1.20,
-                  letterSpacing: -0.35,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 저장 버튼
-  Widget _buildSaveButton() {
-    return GestureDetector(
-      onTap: _saveProfile,
-      child: Container(
-        width: 301.w,
-        height: 38.h,
-        decoration: BoxDecoration(
+      padding: EdgeInsets.only(left: 10.h),
+      child: Text(
+        label,
+        style: TextStyle(
           color: appTheme.teal_400,
-          borderRadius: BorderRadius.circular(20.h),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x66D3D3D3),
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            '저장',
-            style: TextStyle(
-              color: appTheme.white_A700,
-              fontSize: 14.fSize,
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w700,
-              height: 1.20,
-              letterSpacing: -0.35,
-            ),
-          ),
+          fontSize: 12.fSize,
+          fontFamily: 'Pretendard',
+          fontWeight: FontWeight.w500,
+          height: 1.0,
+          letterSpacing: -0.30,
         ),
       ),
     );
   }
 
-  /// 프로필 저장
-  void _saveProfile() {
-    // 비밀번호 확인
-    if (_passwordController.text.isNotEmpty) {
-      if (_passwordController.text != _passwordConfirmController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('비밀번호가 일치하지 않습니다.')),
-        );
-        return;
-      }
+  String? _validateNickname(String? value) {
+    if (value?.isEmpty ?? true) {
+      return '닉네임을 입력해주세요';
     }
-
-    // TODO: 실제 저장 로직 구현
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('프로필이 저장되었습니다.')),
-    );
-
-    // 이전 화면으로 돌아가기
-    Navigator.pop(context);
+    if (value!.length < 2) {
+      return '닉네임은 2자 이상 입력해주세요';
+    }
+    if (value.length > 12) {
+      return '닉네임은 12자 이하로 입력해주세요';
+    }
+    return null;
   }
 }
