@@ -65,8 +65,8 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget _buildLogoSection(BuildContext context) {
     return CustomImageView(
       imagePath: ImageConstant.img,
-      height: 280.h,  // 크기 증가
-      width: 120.h,
+      height: 400.h,  // 크기 증가
+      width: 270.h,
       fit: BoxFit.contain,
     );
   }

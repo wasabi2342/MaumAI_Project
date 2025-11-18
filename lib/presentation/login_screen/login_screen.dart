@@ -5,6 +5,8 @@ import '../../core/app_export.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_image_view.dart';
 import '../../widgets/custom_text_form_field.dart';
+import '../../services/api_service.dart';
+import '../../models/models.dart';
 
 /// LoginScreen - 로그인 화면 (Figma 디자인에 정확히 맞춤)
 ///
@@ -263,7 +265,7 @@ class LoginScreen extends StatelessWidget {
   }
 
   /// 로그인 버튼 클릭 이벤트
-  void _onLoginPressed(BuildContext context) {
+  void _onLoginPressed(BuildContext context) async {
     // 마스터 계정 체크
     if (emailController.text == '1111@naver.com' &&
         passwordController.text == '111111') {
@@ -292,23 +294,61 @@ class LoginScreen extends StatelessWidget {
         ),
       );
 
-      // 로그인 프로세스 시뮬레이션
-      Future.delayed(Duration(seconds: 2), () {
-        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+      try {
+        // 실제 API 호출
+        final result = await ApiService.login(
+          email: emailController.text.trim(),
+          password: passwordController.text,
+        );
+
+        // UserProfile 모델로 변환
+        final userProfile = UserProfile.fromJson(result);
+
+        print('로그인 성공: ${userProfile.nickname} (ID: ${userProfile.id})');
+
+        // 로딩 다이얼로그 닫기
+        Navigator.of(context).pop();
 
         // 성공 메시지 표시
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('로그인 성공!'),
+            content: Text('${userProfile.nickname}님, 환영합니다!'),
             backgroundColor: appTheme.teal_400,
             duration: Duration(seconds: 2),
           ),
         );
 
-        // 입력 필드 초기화
-        emailController.clear();
-        passwordController.clear();
-      });
+        // 홈 화면으로 이동
+        Navigator.pushNamedAndRemoveUntil(
+            context, AppRoutes.homeScreen, (route) => false);
+      } catch (e) {
+        // 로딩 다이얼로그 닫기
+        Navigator.of(context).pop();
+
+        // 에러 메시지 변환
+        String errorMessage;
+        String errorStr = e.toString();
+
+        if (errorStr.contains('이메일') || errorStr.contains('비밀번호')) {
+          errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        } else if (errorStr.contains('SocketException') ||
+            errorStr.contains('Failed host lookup')) {
+          errorMessage = '서버에 연결할 수 없습니다.\n네트워크 연결을 확인해주세요.';
+        } else if (errorStr.contains('TimeoutException')) {
+          errorMessage = '서버 응답 시간이 초과되었습니다.';
+        } else {
+          errorMessage = '로그인에 실패했습니다.\n잠시 후 다시 시도해주세요.';
+        }
+
+        // 에러 메시지 표시
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
