@@ -48,7 +48,7 @@ class LoginScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _buildLogoSection(context),
-                  SizedBox(height: 40.h),
+                  SizedBox(height: 32.h),
                   _buildInputFieldsSection(context),
                   SizedBox(height: 28.h),
                   _buildLoginButton(context),
@@ -70,7 +70,7 @@ class LoginScreen extends StatelessWidget {
   Widget _buildLogoSection(BuildContext context) {
     return CustomImageView(
       imagePath: ImageConstant.img,
-      height: 63.h, // Figma 디자인: height 63
+
       width: 230.h, // 로고 + 텍스트를 포함한 전체 너비
       fit: BoxFit.contain,
     );
@@ -96,6 +96,7 @@ class LoginScreen extends StatelessWidget {
             ),
           ),
         ),
+        SizedBox(height: 8.h),
         // 이메일 입력 필드
         CustomTextFormField(
           controller: emailController,
@@ -109,7 +110,7 @@ class LoginScreen extends StatelessWidget {
           contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
           margin: EdgeInsets.only(top: 2.h),
         ),
-        SizedBox(height: 18.h),
+        SizedBox(height: 12.h),
         // 비밀번호 라벨
         Padding(
           padding: EdgeInsets.only(left: 10.h),
@@ -123,8 +124,11 @@ class LoginScreen extends StatelessWidget {
               height: 1.0,
               letterSpacing: -0.30,
             ),
+
           ),
+
         ),
+        SizedBox(height: 8.h),
         // 비밀번호 입력 필드
         CustomTextFormField(
           controller: passwordController,

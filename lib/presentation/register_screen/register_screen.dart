@@ -51,13 +51,13 @@ class RegisterScreen extends StatelessWidget {
                     _buildHeader(),
                     SizedBox(height: 32.h),
                     _buildInputFields(),
-                    SizedBox(height: 32.h),
+                    SizedBox(height: 20.h),
                     _buildRegisterButton(context),
-                    SizedBox(height: 32.h),
+                    SizedBox(height: 16.h),
                     _buildOrDivider(),
-                    SizedBox(height: 24.h),
+                    SizedBox(height: 16.h),
                     _buildSocialLoginSection(context),
-                    SizedBox(height: 24.h),
+                    SizedBox(height: 20.h),
                     _buildLoginLink(context),
                     SizedBox(height: 32.h),
                   ],
@@ -76,21 +76,10 @@ class RegisterScreen extends StatelessWidget {
       children: [
         CustomImageView(
           imagePath: ImageConstant.img,
-          height: 110.h,
-          width: 110.h,
+          width: 200.h,
+          alignment: Alignment.center,
         ),
-        SizedBox(height: 16.h),
-        Text(
-          '회원가입',
-          style: TextStyle(
-            color: appTheme.teal_400,
-            fontSize: 24.fSize,
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w700,
-            height: 1.0,
-            letterSpacing: -0.60,
-          ),
-        ),
+        SizedBox(height: 8.h),
       ],
     );
   }
@@ -101,6 +90,7 @@ class RegisterScreen extends StatelessWidget {
       children: [
         // 이름
         _buildInputLabel('이름'),
+        SizedBox(height: 10.h), // 라벨과 입력란 사이 여백 추가
         CustomTextFormField(
           controller: nameController,
           placeholder: '이름을 입력해 주세요.',
@@ -109,13 +99,14 @@ class RegisterScreen extends StatelessWidget {
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
           borderRadius: 20.h,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-          margin: EdgeInsets.only(top: 2.h),
+          contentPadding: EdgeInsets.symmetric(horizontal: 15.h, vertical: 8.h), // 좌우 여백 증가
+          margin: EdgeInsets.zero, // 기존 margin 제거
         ),
         SizedBox(height: 18.h),
 
         // 닉네임
         _buildInputLabel('닉네임'),
+        SizedBox(height: 10.h), // 라벨과 입력란 사이 여백 추가
         CustomTextFormField(
           controller: nicknameController,
           placeholder: '닉네임을 입력해 주세요.',
@@ -124,13 +115,14 @@ class RegisterScreen extends StatelessWidget {
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
           borderRadius: 20.h,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-          margin: EdgeInsets.only(top: 2.h),
+          contentPadding: EdgeInsets.symmetric(horizontal: 15.h, vertical: 8.h), // 좌우 여백 증가
+          margin: EdgeInsets.zero, // 기존 margin 제거
         ),
         SizedBox(height: 18.h),
 
         // 이메일
         _buildInputLabel('이메일'),
+        SizedBox(height: 10.h), // 라벨과 입력란 사이 여백 추가
         CustomTextFormField(
           controller: emailController,
           placeholder: '이메일을 입력해 주세요.',
@@ -140,13 +132,14 @@ class RegisterScreen extends StatelessWidget {
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
           borderRadius: 20.h,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-          margin: EdgeInsets.only(top: 2.h),
+          contentPadding: EdgeInsets.symmetric(horizontal: 15.h, vertical: 8.h), // 좌우 여백 증가
+          margin: EdgeInsets.zero, // 기존 margin 제거
         ),
         SizedBox(height: 18.h),
 
         // 비밀번호
         _buildInputLabel('비밀번호'),
+        SizedBox(height: 10.h), // 라벨과 입력란 사이 여백 추가
         CustomTextFormField(
           controller: passwordController,
           placeholder: '비밀번호를 입력해 주세요.',
@@ -156,13 +149,14 @@ class RegisterScreen extends StatelessWidget {
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
           borderRadius: 20.h,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-          margin: EdgeInsets.only(top: 2.h),
+          contentPadding: EdgeInsets.symmetric(horizontal: 15.h, vertical: 8.h), // 좌우 여백 증가
+          margin: EdgeInsets.zero, // 기존 margin 제거
         ),
         SizedBox(height: 18.h),
 
         // 비밀번호 확인
         _buildInputLabel('비밀번호 확인'),
+        SizedBox(height: 10.h), // 라벨과 입력란 사이 여백 추가
         CustomTextFormField(
           controller: confirmPasswordController,
           placeholder: '비밀번호를 다시 입력해 주세요.',
@@ -172,8 +166,8 @@ class RegisterScreen extends StatelessWidget {
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
           borderRadius: 20.h,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-          margin: EdgeInsets.only(top: 2.h),
+          contentPadding: EdgeInsets.symmetric(horizontal: 15.h, vertical: 8.h), // 좌우 여백 증가
+          margin: EdgeInsets.zero, // 기존 margin 제거
         ),
       ],
     );
