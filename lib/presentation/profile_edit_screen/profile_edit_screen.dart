@@ -7,12 +7,12 @@ import '../../widgets/custom_dropdown.dart';
 import '../../services/api_service.dart';
 import '../../models/models.dart';
 
-/// ProfileEditScreen with API Integration
+/// ProfileEditScreenWithAPI
 ///
-/// 백엔드 프로필 API와 연동:
-/// - GET /api/users/{id} : 프로필 조회
-/// - PUT /api/users/{id}/profile : 프로필 수정
-/// - PUT /api/users/{id}/password : 비밀번호 변경
+/// 기능:
+/// - 내 정보 조회 및 수정 (닉네임, 직업, 나이, 성별)
+/// - 비밀번호 변경
+/// - API 연동: ApiService.getProfile, updateProfile, changePassword
 class ProfileEditScreenWithAPI extends StatefulWidget {
   const ProfileEditScreenWithAPI({Key? key}) : super(key: key);
 
@@ -23,18 +23,20 @@ class ProfileEditScreenWithAPI extends StatefulWidget {
 
 class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  // 컨트롤러 정의
   final TextEditingController nicknameController = TextEditingController();
   final TextEditingController jobController = TextEditingController();
   final TextEditingController ageController = TextEditingController();
-  final TextEditingController currentPasswordController =
-  TextEditingController();
+
+  // 비밀번호 변경용 컨트롤러
+  final TextEditingController currentPasswordController = TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-  TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
   String? selectedGender;
   bool isLoading = true;
-  bool isChangingPassword = false;
+  bool isChangingPassword = false; // 비밀번호 변경 섹션 표시 여부
   UserProfile? currentProfile;
 
   @override
@@ -54,9 +56,10 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
     super.dispose();
   }
 
-  /// 프로필 로드
+  /// [API] 프로필 정보 불러오기
   Future<void> _loadProfile() async {
     if (ApiService.currentUserId == null) {
+      // 로그인이 안되어 있다면 화면 종료
       Navigator.pop(context);
       return;
     }
@@ -71,22 +74,23 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
 
       setState(() {
         currentProfile = profile;
+        // 기존 정보로 입력창 채우기
         nicknameController.text = profile.nickname;
         jobController.text = profile.job ?? '';
         ageController.text = profile.age?.toString() ?? '';
-        selectedGender = profile.gender;
+        selectedGender = profile.gender; // 예: "남성", "여성"
         isLoading = false;
       });
     } catch (e) {
       setState(() {
         isLoading = false;
       });
-      _showErrorSnackBar('프로필을 불러올 수 없습니다.');
+      _showErrorSnackBar('프로필을 불러올 수 없습니다: $e');
       print('프로필 로드 실패: $e');
     }
   }
 
-  /// 프로필 업데이트
+  /// [API] 프로필 정보 수정하기
   Future<void> _updateProfile() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -98,9 +102,7 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
       final response = await ApiService.updateProfile(
         userId: ApiService.currentUserId!,
         nickname: nicknameController.text.trim(),
-        job: jobController.text.trim().isNotEmpty
-            ? jobController.text.trim()
-            : null,
+        job: jobController.text.trim().isNotEmpty ? jobController.text.trim() : null,
         age: int.tryParse(ageController.text.trim()),
         gender: selectedGender,
       );
@@ -112,18 +114,18 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
         isLoading = false;
       });
 
-      _showSuccessSnackBar('프로필이 수정되었습니다.');
+      _showSuccessSnackBar('프로필이 성공적으로 수정되었습니다.');
     } catch (e) {
       setState(() {
         isLoading = false;
       });
-      _showErrorSnackBar('프로필 수정에 실패했습니다.');
-      print('프로필 수정 실패: $e');
+      _showErrorSnackBar('프로필 수정 실패: $e');
     }
   }
 
-  /// 비밀번호 변경
+  /// [API] 비밀번호 변경하기
   Future<void> _changePassword() async {
+    // 유효성 검사
     if (currentPasswordController.text.isEmpty ||
         newPasswordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
@@ -132,7 +134,7 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
     }
 
     if (newPasswordController.text != confirmPasswordController.text) {
-      _showErrorSnackBar('새 비밀번호가 일치하지 않습니다.');
+      _showErrorSnackBar('새 비밀번호가 서로 일치하지 않습니다.');
       return;
     }
 
@@ -155,10 +157,10 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
 
       setState(() {
         isLoading = false;
-        isChangingPassword = false;
+        isChangingPassword = false; // 변경 완료 후 섹션 닫기
       });
 
-      // 비밀번호 필드 초기화
+      // 입력 필드 초기화
       currentPasswordController.clear();
       newPasswordController.clear();
       confirmPasswordController.clear();
@@ -169,17 +171,11 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
         isLoading = false;
       });
 
-      String errorMessage;
+      String errorMessage = '비밀번호 변경 실패';
       if (e.toString().contains('현재 비밀번호')) {
         errorMessage = '현재 비밀번호가 올바르지 않습니다.';
-      } else if (e.toString().contains('일치')) {
-        errorMessage = '새 비밀번호가 일치하지 않습니다.';
-      } else {
-        errorMessage = '비밀번호 변경에 실패했습니다.';
       }
-
       _showErrorSnackBar(errorMessage);
-      print('비밀번호 변경 실패: $e');
     }
   }
 
@@ -197,7 +193,7 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: appTheme.redCustom,
         duration: Duration(seconds: 2),
       ),
     );
@@ -206,6 +202,7 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: appTheme.white_A700,
       appBar: AppBar(
         title: Text(
           '프로필 수정',
@@ -216,7 +213,7 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: appTheme.white_A700,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: appTheme.teal_400),
@@ -224,11 +221,7 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
         ),
       ),
       body: isLoading
-          ? Center(
-        child: CircularProgressIndicator(
-          color: appTheme.teal_400,
-        ),
-      )
+          ? Center(child: CircularProgressIndicator(color: appTheme.teal_400))
           : SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.all(20.h),
@@ -239,7 +232,10 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
               children: [
                 _buildProfileSection(),
                 SizedBox(height: 32.h),
+                Divider(color: appTheme.blue_gray_100, thickness: 1),
+                SizedBox(height: 32.h),
                 _buildPasswordSection(),
+                SizedBox(height: 40.h),
               ],
             ),
           ),
@@ -248,6 +244,7 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
     );
   }
 
+  /// 기본 정보 수정 섹션
   Widget _buildProfileSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,9 +264,10 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
         _buildInputLabel('이메일'),
         Container(
           width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 12.h),
+          margin: EdgeInsets.only(top: 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 15.h, vertical: 12.h),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: appTheme.grey200,
             borderRadius: BorderRadius.circular(20.h),
           ),
           child: Text(
@@ -288,27 +286,31 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
         CustomTextFormField(
           controller: nicknameController,
           placeholder: '닉네임을 입력해 주세요.',
-          validator: _validateNickname,
+          validator: (value) {
+            if (value == null || value.isEmpty) return '닉네임을 입력해주세요.';
+            if (value.length < 2) return '닉네임은 2자 이상이어야 합니다.';
+            return null;
+          },
           fillColor: appTheme.white_A700,
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
           borderRadius: 20.h,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-          margin: EdgeInsets.only(top: 2.h),
+          contentPadding: EdgeInsets.symmetric(horizontal: 15.h, vertical: 12.h),
         ),
         SizedBox(height: 18.h),
 
         // 직업
         _buildInputLabel('직업 (선택)'),
-        CustomTextFormField(
-          controller: jobController,
-          placeholder: '직업을 입력해 주세요.',
-          fillColor: appTheme.white_A700,
-          borderColor: appTheme.color66D3D3,
-          focusedBorderColor: appTheme.colorFF66D3,
+        CustomDropdown(
+          placeholder: '직업을 선택해 주세요.',
+          items: ['학생', '회사원', '주부', '기타'],
+          selectedItem: _validOccupation(jobController.text) ? jobController.text : null,
+          onChanged: (value) {
+            setState(() {
+              jobController.text = value;
+            });
+          },
           borderRadius: 20.h,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-          margin: EdgeInsets.only(top: 2.h),
         ),
         SizedBox(height: 18.h),
 
@@ -322,14 +324,22 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
           borderRadius: 20.h,
-          contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-          margin: EdgeInsets.only(top: 2.h),
+          contentPadding: EdgeInsets.symmetric(horizontal: 15.h, vertical: 12.h),
+          suffixIcon: Padding(
+            padding: EdgeInsets.only(right: 15.h),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('세', style: TextStyle(color: appTheme.blue_gray_100)),
+              ],
+            ),
+          ),
         ),
         SizedBox(height: 18.h),
 
         // 성별
         _buildInputLabel('성별 (선택)'),
-        SizedBox(height: 2.h),
+        SizedBox(height: 8.h),
         CustomDropdown(
           placeholder: '성별을 선택해 주세요.',
           items: ['남성', '여성', '기타'],
@@ -345,21 +355,20 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
 
         // 저장 버튼
         CustomButton(
-          text: '저장',
+          text: '정보 수정 저장',
           onPressed: _updateProfile,
           backgroundColor: appTheme.teal_400,
           textColor: appTheme.white_A700,
-          width: double.infinity,
-          height: 38.h,
-          fontSize: 14.fSize,
+          height: 48.h,
+          fontSize: 16.fSize,
           fontWeight: FontWeight.w700,
           borderRadius: 20.h,
-          padding: EdgeInsets.symmetric(horizontal: 30.h, vertical: 10.h),
         ),
       ],
     );
   }
 
+  /// 비밀번호 변경 섹션
   Widget _buildPasswordSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,7 +393,7 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
                   });
                 },
                 child: Text(
-                  '변경',
+                  '변경하기',
                   style: TextStyle(
                     color: appTheme.teal_400,
                     fontSize: 14.fSize,
@@ -409,9 +418,6 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
             borderColor: appTheme.color66D3D3,
             focusedBorderColor: appTheme.colorFF66D3,
             borderRadius: 20.h,
-            contentPadding:
-            EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-            margin: EdgeInsets.only(top: 2.h),
           ),
           SizedBox(height: 18.h),
 
@@ -425,9 +431,6 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
             borderColor: appTheme.color66D3D3,
             focusedBorderColor: appTheme.colorFF66D3,
             borderRadius: 20.h,
-            contentPadding:
-            EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-            margin: EdgeInsets.only(top: 2.h),
           ),
           SizedBox(height: 18.h),
 
@@ -441,13 +444,10 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
             borderColor: appTheme.color66D3D3,
             focusedBorderColor: appTheme.colorFF66D3,
             borderRadius: 20.h,
-            contentPadding:
-            EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
-            margin: EdgeInsets.only(top: 2.h),
           ),
           SizedBox(height: 32.h),
 
-          // 비밀번호 변경 버튼
+          // 버튼 영역 (취소 / 변경)
           Row(
             children: [
               Expanded(
@@ -461,27 +461,21 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
                       confirmPasswordController.clear();
                     });
                   },
-                  backgroundColor: Colors.grey[300]!,
-                  textColor: Colors.grey[700]!,
-                  height: 38.h,
-                  fontSize: 14.fSize,
-                  fontWeight: FontWeight.w700,
+                  backgroundColor: appTheme.grey200,
+                  textColor: appTheme.gray_800,
+                  height: 48.h,
                   borderRadius: 20.h,
-                  padding: EdgeInsets.symmetric(horizontal: 30.h, vertical: 10.h),
                 ),
               ),
               SizedBox(width: 12.h),
               Expanded(
                 child: CustomButton(
-                  text: '변경',
+                  text: '변경 완료',
                   onPressed: _changePassword,
                   backgroundColor: appTheme.teal_400,
                   textColor: appTheme.white_A700,
-                  height: 38.h,
-                  fontSize: 14.fSize,
-                  fontWeight: FontWeight.w700,
+                  height: 48.h,
                   borderRadius: 20.h,
-                  padding: EdgeInsets.symmetric(horizontal: 30.h, vertical: 10.h),
                 ),
               ),
             ],
@@ -493,7 +487,7 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
 
   Widget _buildInputLabel(String label) {
     return Padding(
-      padding: EdgeInsets.only(left: 10.h),
+      padding: EdgeInsets.only(left: 10.h, bottom: 8.h),
       child: Text(
         label,
         style: TextStyle(
@@ -501,23 +495,14 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
           fontSize: 12.fSize,
           fontFamily: 'Pretendard',
           fontWeight: FontWeight.w500,
-          height: 1.0,
-          letterSpacing: -0.30,
         ),
       ),
     );
   }
 
-  String? _validateNickname(String? value) {
-    if (value?.isEmpty ?? true) {
-      return '닉네임을 입력해주세요';
-    }
-    if (value!.length < 2) {
-      return '닉네임은 2자 이상 입력해주세요';
-    }
-    if (value.length > 12) {
-      return '닉네임은 12자 이하로 입력해주세요';
-    }
-    return null;
+  bool _validOccupation(String? val) {
+    if(val == null) return false;
+    const validList = ['학생', '회사원', '주부', '기타'];
+    return validList.contains(val);
   }
 }
