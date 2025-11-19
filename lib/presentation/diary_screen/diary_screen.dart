@@ -1,18 +1,16 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart'; // 이미지 선택을 위해 추가
 
 import '../../core/app_export.dart';
+import '../../services/api_service.dart';
+import '../../models/models.dart';
+import '../../widgets/custom_image_view.dart';
+import '../../widgets/custom_top_app_bar.dart';
+import '../../widgets/custom_bottom_nav_bar.dart';
 
-/// DiaryScreen - 식물 성장 다이어리 화면
-///
-/// 기능:
-/// - 월별 달력 표시
-/// - 다이어리 작성한 날짜에 아이콘 표시
-/// - 다이어리 없는 날짜 클릭 시 작성 팝업
-/// - 다이어리 있는 날짜 클릭 시 상세보기 팝업
-/// - 타임랩스 기능 (한 달 사진 모음)
-/// - 재배 정보 표시 (첫 재배일, 재배일수, 사진수)
+/// DiaryScreen - 식물 성장 다이어리 화면 (API 연동)
 class DiaryScreen extends StatefulWidget {
   const DiaryScreen({Key? key}) : super(key: key);
 
@@ -22,50 +20,58 @@ class DiaryScreen extends StatefulWidget {
 
 class _DiaryScreenState extends State<DiaryScreen> {
   DateTime _currentMonth = DateTime.now();
-  Map<DateTime, DiaryEntry> _diaryEntries = {}; // 다이어리 데이터
 
-  // 재배 정보
-  final String _plantName = '상추';
-  final DateTime _firstPlantDate = DateTime(2025, 9, 5);
+  // API 데이터 캐싱
+  DiaryCalendar? _diaryCalendarData;
+  Map<String, DiaryCalendarDay> _calendarDaysMap = {};
+
+  bool _isLoading = false;
+  int _userPlantId = 1; // 기본값 1, 실제로는 arguments로 받아야 함
 
   @override
   void initState() {
     super.initState();
-    _loadDiaryEntries();
+    // 초기 데이터 로드는 didChangeDependencies에서 수행
   }
 
-  /// 다이어리 데이터 로드 (실제로는 API나 로컬 DB에서)
-  void _loadDiaryEntries() {
-    // 샘플 데이터
-    setState(() {
-      _diaryEntries = {
-        DateTime(2025, 11, 8): DiaryEntry(
-          date: DateTime(2025, 11, 8),
-          photoPath: 'sample_photo_1.jpg',
-          note: '첫 잎이 나왔어요!',
-        ),
-        DateTime(2025, 11, 15): DiaryEntry(
-          date: DateTime(2025, 11, 15),
-          photoPath: 'sample_photo_2.jpg',
-          note: '잎이 더 커졌어요.',
-        ),
-        DateTime(2025, 11, 22): DiaryEntry(
-          date: DateTime(2025, 11, 22),
-          photoPath: 'sample_photo_3.jpg',
-          note: '건강하게 자라고 있어요.',
-        ),
-      };
-    });
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 라우트 인자에서 userPlantId 가져오기 (없으면 기본값 유지)
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is int) {
+      _userPlantId = args;
+    }
+    _fetchMonthData();
   }
 
-  /// 재배 일수 계산
-  int get _cultivationDays {
-    return DateTime.now().difference(_firstPlantDate).inDays;
-  }
+  /// 월별 데이터 API 조회
+  Future<void> _fetchMonthData() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getDiaryCalendar(
+        userPlantId: _userPlantId,
+        year: _currentMonth.year,
+        month: _currentMonth.month,
+      );
 
-  /// 사진 수 계산
-  int get _photoCount {
-    return _diaryEntries.length;
+      // DiaryCalendar 모델 변환
+      final calendarData = DiaryCalendar.fromJson(response);
+
+      setState(() {
+        _diaryCalendarData = calendarData;
+        // 날짜별 빠른 조회를 위해 Map으로 변환 (Key: "yyyy-MM-dd")
+        _calendarDaysMap = {
+          for (var day in calendarData.days)
+            DateFormat('yyyy-MM-dd').format(day.date): day
+        };
+      });
+    } catch (e) {
+      print('다이어리 목록 로드 실패: $e');
+      // 에러 시 빈 상태 유지
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   /// 이전 달로 이동
@@ -73,6 +79,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
     });
+    _fetchMonthData();
   }
 
   /// 다음 달로 이동
@@ -80,19 +87,46 @@ class _DiaryScreenState extends State<DiaryScreen> {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
     });
+    _fetchMonthData();
   }
 
   /// 날짜 클릭 핸들러
-  void _onDateTapped(DateTime date) {
-    // 날짜 정규화 (시간 제거)
-    final normalizedDate = DateTime(date.year, date.month, date.day);
+  void _onDateTapped(DateTime date) async {
+    final dateKey = DateFormat('yyyy-MM-dd').format(date);
+    final dayData = _calendarDaysMap[dateKey];
 
-    if (_diaryEntries.containsKey(normalizedDate)) {
-      // 다이어리가 있는 경우 - 상세보기 팝업
-      _showDiaryDetailDialog(normalizedDate);
+    if (dayData != null && dayData.hasDiary) {
+      // 다이어리가 있는 경우 - 상세 조회 API 호출
+      _fetchAndShowDetail(date);
     } else {
       // 다이어리가 없는 경우 - 작성 팝업
-      _showDiaryCreateDialog(normalizedDate);
+      _showDiaryCreateDialog(date);
+    }
+  }
+
+  /// 다이어리 상세 조회 및 팝업 표시
+  Future<void> _fetchAndShowDetail(DateTime date) async {
+    // 로딩 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
+    );
+
+    try {
+      final response = await ApiService.getDiaryByDate(
+        userPlantId: _userPlantId,
+        date: date,
+      );
+      Navigator.pop(context); // 로딩 닫기
+
+      final diary = Diary.fromJson(response);
+      _showDiaryDetailDialog(diary);
+    } catch (e) {
+      Navigator.pop(context); // 로딩 닫기
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('다이어리를 불러오는데 실패했습니다.')),
+      );
     }
   }
 
@@ -114,183 +148,172 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 사진 촬영 및 다이어리 작성
-  void _captureDiaryPhoto(DateTime date) {
-    // TODO: 실제 카메라 기능 구현
-    // 임시로 다이어리 추가
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.3),
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: AlertDialog(
-          backgroundColor: appTheme.white_A700,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.h),
+  /// 사진 촬영/선택 및 다이어리 생성 API 호출
+  void _captureDiaryPhoto(DateTime date) async {
+    final ImagePicker picker = ImagePicker();
+    // 갤러리에서 선택 (카메라로 변경하려면 source: ImageSource.camera)
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      // 로딩 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
+      );
+
+      try {
+        // API 호출
+        await ApiService.createDiary(
+          userPlantId: _userPlantId,
+          diaryDate: date,
+          content: '오늘의 성장 기록', // 초기 기본값
+          imagePath: image.path,
+        );
+
+        Navigator.pop(context); // 로딩 닫기
+
+        // 성공 메시지 및 새로고침
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('다이어리가 등록되었습니다.'),
+            backgroundColor: appTheme.teal_400,
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.camera_alt,
-                color: appTheme.teal_400,
-                size: 48.h,
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                '사진 촬영 기능',
-                style: TextStyle(
-                  color: appTheme.gray_800,
-                  fontSize: 18.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                '카메라 기능은 실제 앱에서 구현됩니다.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF797979),
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // 샘플 다이어리 추가
-                setState(() {
-                  _diaryEntries[date] = DiaryEntry(
-                    date: date,
-                    photoPath: 'new_photo.jpg',
-                    note: '새로운 기록',
-                  );
-                });
-              },
-              child: Text(
-                '확인',
-                style: TextStyle(
-                  color: appTheme.teal_400,
-                  fontSize: 16.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+        );
+        _fetchMonthData(); // 목록 갱신
+      } catch (e) {
+        Navigator.pop(context); // 로딩 닫기
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('등록 실패: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   /// 다이어리 상세보기 팝업
-  void _showDiaryDetailDialog(DateTime date) {
-    final entry = _diaryEntries[date];
-    if (entry == null) return;
-
+  void _showDiaryDetailDialog(Diary diary) {
     showDialog(
       context: context,
       barrierColor: Color(0x3FD9D9D9),
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: DiaryDetailDialog(
-          entry: entry,
-          onDelete: () {
-            Navigator.of(context).pop();
-            setState(() {
-              _diaryEntries.remove(date);
-            });
+          diary: diary,
+          onDelete: () async {
+            // 삭제 확인
+            bool confirm = await showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text('삭제 확인'),
+                content: Text('정말로 이 일기를 삭제하시겠습니까?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('취소')),
+                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('삭제')),
+                ],
+              ),
+            ) ?? false;
+
+            if (confirm) {
+              try {
+                await ApiService.deleteDiary(diary.id);
+                Navigator.of(context).pop(); // 상세 팝업 닫기
+                _fetchMonthData(); // 목록 갱신
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('삭제되었습니다.')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('삭제 실패: $e')),
+                );
+              }
+            }
           },
         ),
       ),
     );
   }
 
-  /// 타임랩스 화면으로 이동
-  void _goToTimelapse() {
-    // 현재 월의 다이어리만 필터링
-    final monthEntries = _diaryEntries.entries
-        .where((entry) =>
-    entry.key.year == _currentMonth.year &&
-        entry.key.month == _currentMonth.month)
-        .map((e) => e.value)
-        .toList();
+  /// 타임랩스 화면으로 이동 (API 연동)
+  void _goToTimelapse() async {
+    try {
+      // 타임라인 데이터 조회
+      final timelineData = await ApiService.getTimeline(_userPlantId);
+      final timeline = DiaryTimeline.fromJson(timelineData);
 
-    if (monthEntries.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('이번 달에 작성한 다이어리가 없습니다.'),
-          backgroundColor: appTheme.teal_400,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    // TODO: 타임랩스 화면으로 이동
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.3),
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: AlertDialog(
-          backgroundColor: appTheme.white_A700,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.h),
+      if (timeline.items.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('타임랩스를 생성할 사진이 충분하지 않습니다.'),
+            backgroundColor: appTheme.teal_400,
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.play_circle_outline,
-                color: appTheme.teal_400,
-                size: 48.h,
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                '타임랩스 재생',
-                style: TextStyle(
-                  color: appTheme.gray_800,
-                  fontSize: 18.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
+        );
+        return;
+      }
+
+      // TODO: 타임랩스 플레이어 화면으로 이동하며 timeline 데이터 전달
+      showDialog(
+        context: context,
+        barrierColor: Colors.black.withOpacity(0.3),
+        builder: (context) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: AlertDialog(
+            backgroundColor: appTheme.white_A700,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.h),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.play_circle_outline,
+                  color: appTheme.teal_400,
+                  size: 48.h,
                 ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                '${monthEntries.length}장의 사진으로\n타임랩스를 생성합니다.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF797979),
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w500,
+                SizedBox(height: 16.h),
+                Text(
+                  '타임랩스 재생',
+                  style: TextStyle(
+                    color: appTheme.gray_800,
+                    fontSize: 18.fSize,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  '${timeline.items.length}장의 사진으로\n타임랩스를 재생합니다.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF797979),
+                    fontSize: 14.fSize,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  '확인',
+                  style: TextStyle(
+                    color: appTheme.teal_400,
+                    fontSize: 16.fSize,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                '확인',
-                style: TextStyle(
-                  color: appTheme.teal_400,
-                  fontSize: 16.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('타임라인 조회 실패: $e')),
+      );
+    }
   }
 
   @override
@@ -305,7 +328,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
             child: Column(
               children: [
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: _isLoading
+                      ? Center(child: CircularProgressIndicator(color: appTheme.teal_400))
+                      : SingleChildScrollView(
                     child: Column(
                       children: [
                         _buildGrowthInfoSection(),
@@ -315,23 +340,25 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ),
                   ),
                 ),
-                // _buildBottomNavigation(), // <-- 이 부분이 삭제됩니다.
               ],
             ),
           ),
         ),
       ),
-      // v-- 이 부분이 추가됩니다. --v
       bottomNavigationBar: CustomBottomNavBar(
         activeRoute: AppRoutes.diaryScreen,
       ),
-      // ^-- 이 부분이 추가됩니다. --^
     );
   }
 
-
-  /// 성장 정보 섹션
+  /// 성장 정보 섹션 (API 데이터 바인딩)
   Widget _buildGrowthInfoSection() {
+    // 데이터가 없으면 기본값 표시
+    final plantName = _diaryCalendarData?.plantName ?? '-';
+    final daysSince = _diaryCalendarData?.daysSincePlanted ?? 0;
+    final photoCount = _diaryCalendarData?.photoCount ?? 0;
+    final firstDate = _diaryCalendarData?.firstPlantedDate ?? DateTime.now();
+
     return Container(
       width: double.infinity,
       margin: EdgeInsets.symmetric(horizontal: 16.h),
@@ -372,7 +399,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 ),
               ),
               child: Text(
-                '식물 성장 다이어리',
+                '$plantName 성장 다이어리', // 식물 이름 동적 표시
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: const Color(0xFF32C697),
@@ -407,7 +434,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
           Positioned(
             left: 32.h,
             top: 133.h,
-            child: _buildFirstPlantingInfo(),
+            child: _buildFirstPlantingInfo(firstDate),
           ),
           // 재배일수
           Positioned(
@@ -415,7 +442,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
             top: 133.h,
             child: _buildInfoItem(
               '재배일수',
-              '$_cultivationDays일',
+              '${daysSince}일',
             ),
           ),
           // 사진수
@@ -424,12 +451,12 @@ class _DiaryScreenState extends State<DiaryScreen> {
             top: 133.h,
             child: _buildInfoItem(
               '사진수',
-              '$_photoCount장',
+              '${photoCount}장',
             ),
           ),
           // 타임랩스 버튼
           Positioned(
-            left: 140.h, // 130.h에서 140.h로 조정하여 더 중앙에 배치
+            left: 140.h,
             top: 207.h,
             child: InkWell(
               onTap: _goToTimelapse,
@@ -440,8 +467,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      appTheme.green_200,  // #A0ECB1 - custom_top_tab과 동일
-                      appTheme.teal_400,   // #32C697 - custom_top_tab과 동일 (투명도 제거)
+                      appTheme.green_200,
+                      appTheme.teal_400,
                     ],
                   ),
                   shape: RoundedRectangleBorder(
@@ -471,10 +498,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 첫 재배 정보 위젯 (Figma 디자인)
-  Widget _buildFirstPlantingInfo() {
+  Widget _buildFirstPlantingInfo(DateTime date) {
     return SizedBox(
-      width: 95.h, // 120.h에서 95.h로 감소
+      width: 95.h,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.start,
@@ -504,7 +530,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  '${_firstPlantDate.year}',
+                  '${date.year}',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: const Color(0xFF797979),
@@ -515,9 +541,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     letterSpacing: -0.40,
                   ),
                 ),
-                SizedBox(width: 6.h), // 9.h에서 6.h로 감소
+                SizedBox(width: 6.h),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 2.h), // 15.h에서 12.h로 감소
+                  padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 2.h),
                   decoration: ShapeDecoration(
                     color: const Color(0xFFE3FAE8),
                     shape: RoundedRectangleBorder(
@@ -525,7 +551,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ),
                   ),
                   child: Text(
-                    '${_firstPlantDate.month}/${_firstPlantDate.day}',
+                    '${date.month}/${date.day}',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: const Color(0xFF797979),
@@ -545,7 +571,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 정보 항목 위젯
   Widget _buildInfoItem(String label, String value) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -605,7 +630,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 달력 헤더 (년월 선택)
   Widget _buildCalendarHeader() {
     return Container(
       width: double.infinity,
@@ -657,10 +681,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 요일 헤더
   Widget _buildWeekDaysHeader() {
     final weekDays = ['일', '월', '화', '수', '목', '금', '토'];
-    final widths = [52.0, 51.0, 52.0, 51.0, 52.0, 51.0, 52.0]; // Figma 디자인의 각 셀 너비
+    final widths = [52.0, 51.0, 52.0, 51.0, 52.0, 51.0, 52.0];
 
     return Row(
       children: List.generate(7, (index) {
@@ -696,23 +719,17 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 달력 그리드
   Widget _buildCalendarGrid() {
-    final firstDayOfMonth =
-    DateTime(_currentMonth.year, _currentMonth.month, 1);
-    final lastDayOfMonth =
-    DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
-    final firstWeekday = firstDayOfMonth.weekday % 7; // 0: 일요일, 6: 토요일
+    final firstDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
+    final lastDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+    final firstWeekday = firstDayOfMonth.weekday % 7; // 0: 일요일
     final daysInMonth = lastDayOfMonth.day;
-
-    // 이전 달 마지막 날짜
-    final lastDayOfPrevMonth =
-        DateTime(_currentMonth.year, _currentMonth.month, 0).day;
+    final lastDayOfPrevMonth = DateTime(_currentMonth.year, _currentMonth.month, 0).day;
 
     List<Widget> dayWidgets = [];
-    final widths = [51.57, 51.57, 51.57, 51.57, 51.57, 51.57, 51.57]; // Figma 디자인의 각 날짜 셀 너비
+    final widths = [51.57, 51.57, 51.57, 51.57, 51.57, 51.57, 51.57];
 
-    // 이전 달 날짜들
+    // 이전 달
     for (int i = firstWeekday - 1; i >= 0; i--) {
       final weekday = (firstWeekday - 1 - i) % 7;
       dayWidgets.add(_buildDayCell(
@@ -722,10 +739,12 @@ class _DiaryScreenState extends State<DiaryScreen> {
       ));
     }
 
-    // 현재 달 날짜들
+    // 현재 달
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_currentMonth.year, _currentMonth.month, day);
-      final hasDiary = _diaryEntries.containsKey(date);
+      final dateKey = DateFormat('yyyy-MM-dd').format(date);
+      final dayData = _calendarDaysMap[dateKey];
+      final hasDiary = dayData?.hasDiary ?? false;
       final weekday = (firstWeekday + day - 1) % 7;
 
       dayWidgets.add(_buildDayCell(
@@ -737,8 +756,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
       ));
     }
 
-    // 다음 달 날짜들
-    final remainingCells = 42 - dayWidgets.length; // 6주 * 7일
+    // 다음 달
+    final remainingCells = 42 - dayWidgets.length;
     for (int day = 1; day <= remainingCells; day++) {
       final weekday = (firstWeekday + daysInMonth + day - 1) % 7;
       dayWidgets.add(_buildDayCell(
@@ -760,7 +779,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 날짜 셀
   Widget _buildDayCell(
       int day, {
         required double width,
@@ -770,13 +788,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
       }) {
     Color textColor;
     if (!isCurrentMonth) {
-      textColor = const Color(0xFFD3D3D3); // 이전/다음 달 날짜는 회색
+      textColor = const Color(0xFFD3D3D3);
     } else if (date?.weekday == DateTime.sunday) {
-      textColor = const Color(0xFFEC7243); // 일요일 빨간색
+      textColor = const Color(0xFFEC7243);
     } else if (date?.weekday == DateTime.saturday) {
-      textColor = const Color(0xFF32C697); // 토요일 녹색
+      textColor = const Color(0xFF32C697);
     } else {
-      textColor = const Color(0xFF1B1B1B); // 평일 검은색
+      textColor = const Color(0xFF1B1B1B);
     }
 
     return InkWell(
@@ -788,17 +806,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
         decoration: ShapeDecoration(
           color: const Color(0xFFFDFEFB),
           shape: RoundedRectangleBorder(
-            side: BorderSide(
-              width: 1,
-              color: const Color(0xFFD3D3D3),
-            ),
+            side: BorderSide(width: 1, color: const Color(0xFFD3D3D3)),
           ),
         ),
         child: Stack(
           children: [
-            // 날짜 텍스트
             Positioned(
-              left: day < 10 ? 4.h : 3.h, // 한 자리 숫자는 4, 두 자리 숫자는 3
+              left: day < 10 ? 4.h : 3.h,
               top: 4.h,
               child: Text(
                 '$day',
@@ -812,7 +826,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 ),
               ),
             ),
-            // 다이어리 아이콘
             if (hasDiary)
               Positioned(
                 right: 4.h,
@@ -828,24 +841,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
       ),
     );
   }
-
-// v-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --v
-// Widget _buildBottomNavigation() { ... }
-// Widget _buildNavItem(String label, IconData icon, bool isSelected, VoidCallback? onTap) { ... }
-// ^-- _buildBottomNavigation() 및 _buildNavItem() 메서드가 여기서 삭제됩니다. --^
-}
-
-/// 다이어리 데이터 모델
-class DiaryEntry {
-  final DateTime date;
-  final String photoPath;
-  final String note;
-
-  DiaryEntry({
-    required this.date,
-    required this.photoPath,
-    required this.note,
-  });
 }
 
 /// 다이어리 작성 팝업
@@ -881,7 +876,6 @@ class DiaryCreateDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 날짜 표시
             Text(
               '${date.year}   ${date.month}/${date.day}',
               textAlign: TextAlign.center,
@@ -894,7 +888,6 @@ class DiaryCreateDialog extends StatelessWidget {
               ),
             ),
             SizedBox(height: 30.h),
-            // 사진 촬영 버튼
             InkWell(
               onTap: onPhotoCapture,
               child: Container(
@@ -906,11 +899,7 @@ class DiaryCreateDialog extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.camera_alt,
-                      color: appTheme.white_A700,
-                      size: 20.h,
-                    ),
+                    Icon(Icons.camera_alt, color: appTheme.white_A700, size: 20.h),
                     SizedBox(width: 8.h),
                     Text(
                       '사진 촬영',
@@ -926,9 +915,8 @@ class DiaryCreateDialog extends StatelessWidget {
               ),
             ),
             SizedBox(height: 20.h),
-            // 안내 문구
             Text(
-              '메모를 작아주세요.\n메모를 작아주세요.\n메모를 작아주세요.',
+              '사진을 등록하여\n일기를 작성해주세요.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Color(0xFF797979),
@@ -939,14 +927,9 @@ class DiaryCreateDialog extends StatelessWidget {
               ),
             ),
             SizedBox(height: 20.h),
-            // 닫기 버튼
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Icon(
-                Icons.close,
-                color: Color(0xFF797979),
-                size: 24.h,
-              ),
+              child: Icon(Icons.close, color: Color(0xFF797979), size: 24.h),
             ),
           ],
         ),
@@ -955,14 +938,14 @@ class DiaryCreateDialog extends StatelessWidget {
   }
 }
 
-/// 다이어리 상세보기 팝업
+/// 다이어리 상세보기 팝업 (API 데이터 연동)
 class DiaryDetailDialog extends StatelessWidget {
-  final DiaryEntry entry;
+  final Diary diary;
   final VoidCallback onDelete;
 
   const DiaryDetailDialog({
     Key? key,
-    required this.entry,
+    required this.diary,
     required this.onDelete,
   }) : super(key: key);
 
@@ -988,9 +971,8 @@ class DiaryDetailDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 날짜 표시
             Text(
-              '${entry.date.year}   ${entry.date.month}/${entry.date.day}',
+              '${diary.diaryDate.year}   ${diary.diaryDate.month}/${diary.diaryDate.day}',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: appTheme.teal_400,
@@ -1009,7 +991,13 @@ class DiaryDetailDialog extends StatelessWidget {
                 color: appTheme.green_50,
                 borderRadius: BorderRadius.circular(10.h),
               ),
-              child: Center(
+              clipBehavior: Clip.antiAlias,
+              child: diary.imageUrl != null && diary.imageUrl!.isNotEmpty
+                  ? CustomImageView(
+                imagePath: diary.imageUrl,
+                fit: BoxFit.cover,
+              )
+                  : Center(
                 child: Icon(
                   Icons.image,
                   size: 60.h,
@@ -1027,7 +1015,7 @@ class DiaryDetailDialog extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10.h),
               ),
               child: Text(
-                entry.note,
+                diary.content ?? '내용 없음',
                 style: TextStyle(
                   color: Color(0xFF797979),
                   fontSize: 14.fSize,
@@ -1044,8 +1032,10 @@ class DiaryDetailDialog extends StatelessWidget {
               children: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
-                    // TODO: 수정 기능
+                    // 수정 기능은 추후 구현
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('수정 기능은 준비중입니다.')),
+                    );
                   },
                   child: Text(
                     '수정',
