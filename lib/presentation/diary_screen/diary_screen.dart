@@ -110,7 +110,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
+      builder: (context) =>
+          Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
     );
 
     try {
@@ -159,7 +160,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
+        builder: (context) =>
+            Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
       );
 
       try {
@@ -207,11 +209,16 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 title: Text('삭제 확인'),
                 content: Text('정말로 이 일기를 삭제하시겠습니까?'),
                 actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('취소')),
-                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('삭제')),
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: Text('취소')),
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: Text('삭제')),
                 ],
               ),
-            ) ?? false;
+            ) ??
+                false;
 
             if (confirm) {
               try {
@@ -329,7 +336,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
               children: [
                 Expanded(
                   child: _isLoading
-                      ? Center(child: CircularProgressIndicator(color: appTheme.teal_400))
+                      ? Center(
+                      child: CircularProgressIndicator(
+                          color: appTheme.teal_400))
                       : SingleChildScrollView(
                     child: Column(
                       children: [
@@ -351,7 +360,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 성장 정보 섹션 (API 데이터 바인딩)
+  /// 성장 정보 섹션 (API 데이터 바인딩) - Overflow 수정됨
   Widget _buildGrowthInfoSection() {
     // 데이터가 없으면 기본값 표시
     final plantName = _diaryCalendarData?.plantName ?? '-';
@@ -430,64 +439,58 @@ class _DiaryScreenState extends State<DiaryScreen> {
               ),
             ),
           ),
-          // 첫 재배 정보
+          // [수정] 정보 아이템들을 Row로 묶어서 균등 배치 (Overflow 방지)
           Positioned(
-            left: 32.h,
+            left: 16.h,
+            right: 16.h,
             top: 133.h,
-            child: _buildFirstPlantingInfo(firstDate),
-          ),
-          // 재배일수
-          Positioned(
-            left: 165.h,
-            top: 133.h,
-            child: _buildInfoItem(
-              '재배일수',
-              '${daysSince}일',
-            ),
-          ),
-          // 사진수
-          Positioned(
-            left: 265.h,
-            top: 133.h,
-            child: _buildInfoItem(
-              '사진수',
-              '${photoCount}장',
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 공간 균등 분배
+              children: [
+                _buildFirstPlantingInfo(firstDate),
+                _buildInfoItem('재배일수', '${daysSince}일'),
+                _buildInfoItem('사진수', '${photoCount}장'),
+              ],
             ),
           ),
           // 타임랩스 버튼
           Positioned(
-            left: 140.h,
+            left: 0,
+            right: 0,
             top: 207.h,
-            child: InkWell(
-              onTap: _goToTimelapse,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 22.h, vertical: 6.h),
-                decoration: ShapeDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      appTheme.green_200,
-                      appTheme.teal_400,
-                    ],
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20.h),
-                      topRight: Radius.circular(20.h),
+            child: Center(
+              child: InkWell(
+                onTap: _goToTimelapse,
+                child: Container(
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 22.h, vertical: 6.h),
+                  decoration: ShapeDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        appTheme.green_200,
+                        appTheme.teal_400,
+                      ],
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.h),
+                        topRight: Radius.circular(20.h),
+                      ),
                     ),
                   ),
-                ),
-                child: Text(
-                  '타임랩스',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: const Color(0xFFFDFEFB),
-                    fontSize: 14.fSize,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w600,
-                    height: 1.0,
-                    letterSpacing: -0.35,
+                  child: Text(
+                    '타임랩스',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: const Color(0xFFFDFEFB),
+                      fontSize: 14.fSize,
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w600,
+                      height: 1.0,
+                      letterSpacing: -0.35,
+                    ),
                   ),
                 ),
               ),
@@ -543,7 +546,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 ),
                 SizedBox(width: 6.h),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 2.h),
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 12.h, vertical: 2.h),
                   decoration: ShapeDecoration(
                     color: const Color(0xFFE3FAE8),
                     shape: RoundedRectangleBorder(
@@ -649,7 +653,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
             height: 22.h,
             child: IconButton(
               padding: EdgeInsets.zero,
-              icon: Icon(Icons.chevron_left, color: const Color(0xFF32C697), size: 22.h),
+              icon: Icon(Icons.chevron_left,
+                  color: const Color(0xFF32C697), size: 22.h),
               onPressed: _goToPreviousMonth,
             ),
           ),
@@ -672,7 +677,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
             height: 22.h,
             child: IconButton(
               padding: EdgeInsets.zero,
-              icon: Icon(Icons.chevron_right, color: const Color(0xFF32C697), size: 22.h),
+              icon: Icon(Icons.chevron_right,
+                  color: const Color(0xFF32C697), size: 22.h),
               onPressed: _goToNextMonth,
             ),
           ),
@@ -681,36 +687,36 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
+  /// 요일 헤더 빌드 (Expanded 사용으로 Overflow 방지)
   Widget _buildWeekDaysHeader() {
     final weekDays = ['일', '월', '화', '수', '목', '금', '토'];
-    final widths = [52.0, 51.0, 52.0, 51.0, 52.0, 51.0, 52.0];
 
     return Row(
       children: List.generate(7, (index) {
-        final day = weekDays[index];
-        return Container(
-          width: widths[index].h,
-          height: 43.h,
-          clipBehavior: Clip.antiAlias,
-          decoration: ShapeDecoration(
-            color: const Color(0xFFE3FAE8),
-            shape: RoundedRectangleBorder(
-              side: BorderSide(
-                width: 1,
-                color: const Color(0xFF32C697),
+        return Expanded(
+          child: Container(
+            height: 43.h,
+            clipBehavior: Clip.antiAlias,
+            decoration: ShapeDecoration(
+              color: const Color(0xFFE3FAE8),
+              shape: RoundedRectangleBorder(
+                side: BorderSide(
+                  width: 1,
+                  color: const Color(0xFF32C697),
+                ),
               ),
             ),
-          ),
-          child: Center(
-            child: Text(
-              day,
-              style: TextStyle(
-                color: const Color(0xFF37705E),
-                fontSize: 14.fSize,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w500,
-                height: 1.2,
-                letterSpacing: -0.35,
+            child: Center(
+              child: Text(
+                weekDays[index],
+                style: TextStyle(
+                  color: const Color(0xFF37705E),
+                  fontSize: 14.fSize,
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w500,
+                  height: 1.2,
+                  letterSpacing: -0.35,
+                ),
               ),
             ),
           ),
@@ -719,23 +725,26 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
+  /// 달력 그리드 빌드 (Expanded 사용으로 Overflow 방지)
   Widget _buildCalendarGrid() {
-    final firstDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
-    final lastDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+    final firstDayOfMonth =
+    DateTime(_currentMonth.year, _currentMonth.month, 1);
+    final lastDayOfMonth =
+    DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
     final firstWeekday = firstDayOfMonth.weekday % 7; // 0: 일요일
     final daysInMonth = lastDayOfMonth.day;
-    final lastDayOfPrevMonth = DateTime(_currentMonth.year, _currentMonth.month, 0).day;
+    final lastDayOfPrevMonth =
+        DateTime(_currentMonth.year, _currentMonth.month, 0).day;
 
     List<Widget> dayWidgets = [];
-    final widths = [51.57, 51.57, 51.57, 51.57, 51.57, 51.57, 51.57];
 
     // 이전 달
     for (int i = firstWeekday - 1; i >= 0; i--) {
-      final weekday = (firstWeekday - 1 - i) % 7;
-      dayWidgets.add(_buildDayCell(
-        lastDayOfPrevMonth - i,
-        width: widths[weekday],
-        isCurrentMonth: false,
+      dayWidgets.add(Expanded(
+        child: _buildDayCell(
+          lastDayOfPrevMonth - i,
+          isCurrentMonth: false,
+        ),
       ));
     }
 
@@ -745,25 +754,25 @@ class _DiaryScreenState extends State<DiaryScreen> {
       final dateKey = DateFormat('yyyy-MM-dd').format(date);
       final dayData = _calendarDaysMap[dateKey];
       final hasDiary = dayData?.hasDiary ?? false;
-      final weekday = (firstWeekday + day - 1) % 7;
 
-      dayWidgets.add(_buildDayCell(
-        day,
-        width: widths[weekday],
-        date: date,
-        isCurrentMonth: true,
-        hasDiary: hasDiary,
+      dayWidgets.add(Expanded(
+        child: _buildDayCell(
+          day,
+          date: date,
+          isCurrentMonth: true,
+          hasDiary: hasDiary,
+        ),
       ));
     }
 
     // 다음 달
     final remainingCells = 42 - dayWidgets.length;
     for (int day = 1; day <= remainingCells; day++) {
-      final weekday = (firstWeekday + daysInMonth + day - 1) % 7;
-      dayWidgets.add(_buildDayCell(
-        day,
-        width: widths[weekday],
-        isCurrentMonth: false,
+      dayWidgets.add(Expanded(
+        child: _buildDayCell(
+          day,
+          isCurrentMonth: false,
+        ),
       ));
     }
 
@@ -771,17 +780,15 @@ class _DiaryScreenState extends State<DiaryScreen> {
       children: [
         for (int week = 0; week < 6; week++)
           Row(
-            children: [
-              for (int day = 0; day < 7; day++) dayWidgets[week * 7 + day],
-            ],
+            children: dayWidgets.sublist(week * 7, (week * 7) + 7),
           ),
       ],
     );
   }
 
+  /// 날짜 셀 빌드
   Widget _buildDayCell(
       int day, {
-        required double width,
         DateTime? date,
         bool isCurrentMonth = true,
         bool hasDiary = false,
@@ -800,7 +807,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     return InkWell(
       onTap: isCurrentMonth && date != null ? () => _onDateTapped(date) : null,
       child: Container(
-        width: width.h,
         height: 52.h,
         clipBehavior: Clip.antiAlias,
         decoration: ShapeDecoration(
@@ -899,7 +905,8 @@ class DiaryCreateDialog extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.camera_alt, color: appTheme.white_A700, size: 20.h),
+                    Icon(Icons.camera_alt,
+                        color: appTheme.white_A700, size: 20.h),
                     SizedBox(width: 8.h),
                     Text(
                       '사진 촬영',
