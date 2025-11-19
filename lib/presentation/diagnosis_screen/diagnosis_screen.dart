@@ -190,9 +190,9 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                         child: Column(
                           children: [
                             CustomTopTab(text: '진단'),
-                            SizedBox(height: 4.h),
-                            _buildTimeAnalysisLabel(),
                             SizedBox(height: 12.h),
+                            _buildTimeAnalysisLabel(),
+                            SizedBox(height: 16.h),
                             _buildPhotoAnalysisSection(),
                             // 초록색 배경 끝
                           ],
@@ -230,30 +230,35 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       ),
     );
   }
-
   Widget _buildTimeAnalysisLabel() {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.only(left: 16.h),
-        padding: EdgeInsets.symmetric(horizontal: 8.h, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE3FAE8),
-          borderRadius: BorderRadius.circular(4.h),
+        padding:
+        EdgeInsets.only(top: 4.h, left: 17.h, right: 20.h, bottom: 4.h),
+        clipBehavior: Clip.antiAlias,
+        decoration: ShapeDecoration(
+          color: const Color(0xFFFDFEFB),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              topRight: Radius.circular(20.h),
+              bottomRight: Radius.circular(20.h),
+            ),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.access_time, size: 16.h, color: const Color(0xFF32C697)),
-            SizedBox(width: 4.h),
             Text(
-              '사진 분석',
+              '사진분석',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: const Color(0xFF32C697),
-                fontSize: 12.fSize,
+                fontSize: 16.fSize,
                 fontFamily: 'Pretendard',
                 fontWeight: FontWeight.w500,
-                letterSpacing: -0.30,
+                height: 1.0,
+                letterSpacing: -0.40,
               ),
             ),
           ],

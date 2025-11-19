@@ -200,7 +200,6 @@ class _ControlScreenState extends State<ControlScreen>
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.only(left: 16.h),
         padding:
         EdgeInsets.only(top: 4.h, left: 17.h, right: 20.h, bottom: 4.h),
         clipBehavior: Clip.antiAlias,
