@@ -295,6 +295,7 @@ class ApiService {
     required int plantId,
     String? nickname,
     DateTime? startedAt,
+    int? deviceId,
   }) async {
     try {
       final requestBody = <String, dynamic>{
@@ -305,7 +306,9 @@ class ApiService {
       if (startedAt != null) {
         requestBody['startedAt'] = startedAt.toIso8601String().split('T')[0];
       }
-
+      if (deviceId != null) {
+        requestBody['deviceId'] = deviceId;
+      }
       final response = await http
           .post(
         Uri.parse('$baseUrl/user-plants?userId=$userId'),

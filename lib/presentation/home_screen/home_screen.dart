@@ -68,23 +68,45 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _isLoading = false);
       return;
     }
-
     try {
+      // 1. 내 식물 목록 조회
       final userPlants = await ApiService.getUserPlants(ApiService.currentUserId!);
 
       if (userPlants.isNotEmpty) {
         final firstUserPlant = userPlants[0];
-        final int plantId = firstUserPlant['plantId'];
 
-        final plantDetailJson = await ApiService.getPlantDetail(plantId);
-        final plantInfo = PlantInfo.fromJson(plantDetailJson);
+        // plantId 찾기 (JSON에 없으면 이름으로 매칭 시도)
+        int? plantId = firstUserPlant['plantId'];
+        final String plantName = firstUserPlant['plantName'] ?? '';
 
-        setState(() {
-          _selectedPlant = plantInfo;
-          _isLoading = false;
-        });
+        if (plantId == null && plantName.isNotEmpty) {
+          // plantId가 없으면 전체 식물 목록에서 이름으로 찾기
+          final allPlants = await ApiService.getAllPlants();
+          // json 데이터에서 name이 일치하는 항목 찾기
+          final match = allPlants.firstWhere(
+                (json) => json['name'] == plantName,
+            orElse: () => null,
+          );
+          if (match != null) {
+            plantId = match['id'];
+          }
+        }
 
-        _showPlantGuideDialog();
+        if (plantId != null) {
+          final plantDetailJson = await ApiService.getPlantDetail(plantId);
+          final plantInfo = PlantInfo.fromJson(plantDetailJson);
+
+          setState(() {
+            _selectedPlant = plantInfo;
+            _isLoading = false;
+          });
+
+          // [옵션] 자동 팝업이 불편하면 주석 처리하세요.
+          // _showPlantGuideDialog();
+        } else {
+          // 매칭되는 식물을 못 찾았을 때
+          setState(() => _isLoading = false);
+        }
       } else {
         setState(() => _isLoading = false);
       }

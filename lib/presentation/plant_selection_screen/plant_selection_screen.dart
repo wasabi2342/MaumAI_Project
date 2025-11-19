@@ -86,7 +86,7 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
               ),
               SizedBox(height: 8.h),
               Text(
-                '재배 난이도: ${plant.difficultyKorean}', // 모델의 Getter 활용
+                '재배 난이도: ${plant.difficultyKorean}',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xFF797979),
@@ -99,14 +99,48 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // 선택한 PlantInfo 객체를 홈 화면으로 전달하며 이동
-                Navigator.pushReplacementNamed(
-                  context,
-                  AppRoutes.homeScreen,
-                  arguments: plant,
-                );
+              onPressed: () async {
+                if (ApiService.currentUserId != null) {
+                  try {
+                    // 로딩 표시
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => Center(
+                        child: CircularProgressIndicator(color: appTheme.teal_400),
+                      ),
+                    );
+
+                    // 서버에 내 식물로 등록 (deviceId: 1 추가)
+                    await ApiService.createUserPlant(
+                      userId: ApiService.currentUserId!,
+                      plantId: plant.id,
+                      nickname: plant.name,
+                      startedAt: DateTime.now(),
+                      deviceId: 1, // [수정] deviceId를 1로 고정하여 전달
+                    );
+
+                    Navigator.pop(context); // 로딩 닫기
+                    Navigator.of(context).pop(); // 다이얼로그 닫기
+
+                    // 홈 화면으로 이동
+                    Navigator.pushReplacementNamed(
+                      context,
+                      AppRoutes.homeScreen,
+                      arguments: plant,
+                    );
+                  } catch (e) {
+                    Navigator.pop(context); // 로딩 닫기
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('식물 등록에 실패했습니다: $e')),
+                    );
+                  }
+                } else {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('로그인 정보가 없습니다.')),
+                  );
+                }
               },
               child: Text(
                 '확인',
@@ -123,6 +157,7 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
