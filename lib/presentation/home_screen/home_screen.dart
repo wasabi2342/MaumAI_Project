@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
 
+// 모델 파일 import (경로가 다르다면 수정해주세요)
+import '../../models/models.dart';
+
 /// HomeScreen - 스마트 팜 홈 화면
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -12,6 +15,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedTab = 0; // 0: 온도, 1: 습도, 2: 조도, 3: EC, 4: Co2
+
+  // 선택된 식물 정보 (PlantSelectionScreen에서 전달받음)
+  PlantInfo? _selectedPlant;
 
   // 각 탭의 색상 정의
   final List<Color> _tabColors = [
@@ -29,6 +35,16 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showPlantGuideDialog();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 이전 화면에서 넘겨준 arguments 받기
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is PlantInfo) {
+      _selectedPlant = args;
+    }
   }
 
   /// 식물 가이드 팝업 표시
@@ -59,6 +75,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 식물 가이드 팝업 위젯
   Widget _buildPlantGuidePopup() {
+    // 데이터 바인딩: _selectedPlant가 있으면 해당 값을, 없으면 기본값 표시
+    final name = _selectedPlant?.name ?? '식물을 선택해주세요';
+    final difficulty = _selectedPlant?.difficultyKorean ?? '-';
+
+    // models.dart의 Getter 활용
+    final tempRange = _selectedPlant?.temperatureRange ?? '-';
+    final humidityRange = _selectedPlant?.humidityRange ?? '-';
+    final lightLevel = _selectedPlant?.lightLevelKorean ?? '-';
+    final ecRange = _selectedPlant?.ecRange ?? '-';
+
+    // models.dart에 추가하신 co2Range Getter 사용
+    String co2Range = _selectedPlant?.co2Range ?? '-';
+
+    // 값이 '-'가 아니라면 뒤에 단위(ppm) 붙이기
+    if (co2Range != '-') {
+      co2Range = '$co2Range ppm';
+    }
+
     return Container(
       width: 297.w,
       height: 374.h,
@@ -130,6 +164,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Color(0xFFE3FAE8),
                     shape: BoxShape.circle,
                   ),
+                  child: Center(
+                    child: Icon(
+                      Icons.eco,
+                      size: 40.w,
+                      color: appTheme.teal_400,
+                    ),
+                  ),
                 ),
                 SizedBox(width: 11.w),
                 // 식물 정보 텍스트
@@ -139,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(
                       width: 142.w,
                       child: Text(
-                        '상추상추상추상추상추상추',
+                        name,
                         style: TextStyle(
                           color: Color(0xFF797979),
                           fontSize: 14.fSize,
@@ -154,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(
                       width: 142.w,
                       child: Text(
-                        '재배 난이도 : 쉬움',
+                        '재배 난이도 : $difficulty',
                         style: TextStyle(
                           color: Color(0xFF797979),
                           fontSize: 12.fSize,
@@ -186,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               label: '적정 온도',
-              value: '22 ℃ ~ 22 ℃',
+              value: tempRange,
             ),
           ),
 
@@ -205,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               label: '적정 습도',
-              value: '59 % ~ 59 %',
+              value: humidityRange,
             ),
           ),
 
@@ -224,11 +265,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               label: '적정 조도',
-              value: '59 % ~ 59 %',
+              value: lightLevel,
             ),
           ),
 
-          // LED
+          // 적정 CO2 (수정됨)
           Positioned(
             left: 47.5.w,
             top: 284.h,
@@ -242,13 +283,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Color(0xFF32C697),
                 ),
               ),
-              label: 'LED',
-              value: '430 ppm ~ 430 ppm',
+              label: '적정 CO2',
+              value: co2Range, // 수정된 값 바인딩
               fontSize: 10.fSize,
             ),
           ),
 
-          // 양액주기
+          // 적정 EC
           Positioned(
             left: 47.5.w,
             top: 327.h,
@@ -265,8 +306,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              label: '양액주기',
-              value: '430 ppm ~ 430 ppm',
+              label: '적정 EC',
+              value: ecRange,
               fontSize: 10.fSize,
             ),
           ),
@@ -361,11 +402,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 114.w,
                     height: 156.h,
                     label: '온도',
-                    value: '22 ℃',
+                    value: '22 ℃', // 추후 실제 센서 데이터 연결
                     status: '정상',
                     statusColor: Color(0xFF32C697),
                     optimalLabel: '적정 온도',
-                    optimalValue: '22 ℃ ~ 22 ℃',
+                    optimalValue: _selectedPlant?.temperatureRange ?? '20 ~ 25℃',
                   ),
                 ),
 
@@ -377,11 +418,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 115.w,
                     height: 156.h,
                     label: '습도',
-                    value: '59 %',
+                    value: '59 %', // 추후 실제 센서 데이터 연결
                     status: '위험',
                     statusColor: Color(0xFFEC7243),
                     optimalLabel: '적정 습도',
-                    optimalValue: '59 % ~ 59 %',
+                    optimalValue: _selectedPlant?.humidityRange ?? '50 ~ 60%',
                   ),
                 ),
 
@@ -393,16 +434,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 114.w,
                     height: 156.h,
                     label: '조도',
-                    value: '820 lux',
+                    value: '820 lux', // 추후 실제 센서 데이터 연결
                     status: '주의',
                     statusColor: Color(0xFFECC043),
                     optimalLabel: '적정 조도',
-                    optimalValue: '59 % ~ 59 %',
+                    optimalValue: _selectedPlant?.lightLevelKorean ?? '중간',
                     hasIcon: true,
                   ),
                 ),
 
-                // Co2 카드
+                // Co2 카드 (수정됨)
                 Positioned(
                   left: 16.w,
                   top: 382.h,
@@ -410,11 +451,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 176.w,
                     height: 75.h,
                     label: 'Co2',
-                    value: '430 ppm',
+                    value: '430 ppm', // 추후 실제 센서 데이터 연결
                     status: '정상',
                     statusColor: Color(0xFF32C697),
                     optimalLabel: '적정 Co2',
-                    optimalValue: '430 ppm ~ 430 ppm',
+                    optimalValue: _selectedPlant?.co2Range ?? '400 ~ 600', // Getter 사용
                   ),
                 ),
 
@@ -426,11 +467,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 176.w,
                     height: 75.h,
                     label: 'EC',
-                    value: '13 mS/cm',
+                    value: '13 mS/cm', // 추후 실제 센서 데이터 연결
                     status: '주의',
                     statusColor: Color(0xFFECC043),
-                    optimalLabel: '적정 Co2',
-                    optimalValue: '430 ppm ~ 430 ppm',
+                    optimalLabel: '적정 EC',
+                    optimalValue: _selectedPlant?.ecRange ?? '1.0 ~ 2.0',
                   ),
                 ),
 
@@ -481,7 +522,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(50),
                             ),
                             child: Text(
-                              '상추추추추...',
+                              _selectedPlant?.name ?? '식물 없음',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Color(0xFFEEEEEE),
@@ -679,7 +720,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 탭 버튼 (개선된 버전)
+  /// 탭 버튼
   Widget _buildTabButton(String label, int index) {
     bool isSelected = _selectedTab == index;
 

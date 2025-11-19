@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dart:convert'; // JSON 처리를 위해 필요
 
+// 프로젝트 구조에 맞춰 경로를 확인해주세요.
 import '../../core/app_export.dart';
 import '../../widgets/custom_top_tab.dart';
 import '../../widgets/custom_top_app_bar.dart';
 import '../../widgets/custom_bottom_nav_bar.dart';
+import '../../services/api_service.dart'; // ApiService 위치
+import '../../models/models.dart'; // PlantInfo 모델 위치
 
 /// PlantSelectionScreen - 재배할 식물 선택 화면
 ///
 /// 기능:
-/// - 재배 가능한 식물 목록 표시
+/// - 서버 API로부터 재배 가능한 식물 목록 표시
 /// - 각 식물의 이미지, 이름, 난이도 표시
-/// - 식물 선택 버튼
-/// - 선택한 식물로 홈 화면 이동
+/// - 식물 선택 버튼 -> 홈 화면으로 데이터 전달
 class PlantSelectionScreen extends StatefulWidget {
   const PlantSelectionScreen({Key? key}) : super(key: key);
 
@@ -21,33 +24,35 @@ class PlantSelectionScreen extends StatefulWidget {
 }
 
 class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
-  // 재배 가능한 식물 목록
-  final List<PlantInfo> _plants = [
-    PlantInfo(
-      id: '1',
-      name: '상추상추상추상추상추상추',
-      difficulty: '쉬움',
-      imageUrl: 'assets/images/plant_lettuce.png',
-    ),
-    PlantInfo(
-      id: '2',
-      name: '상추상추상추상추상추상추',
-      difficulty: '쉬움',
-      imageUrl: 'assets/images/plant_lettuce.png',
-    ),
-    PlantInfo(
-      id: '3',
-      name: '상추상추상추상추상추상추',
-      difficulty: '쉬움',
-      imageUrl: 'assets/images/plant_lettuce.png',
-    ),
-    PlantInfo(
-      id: '4',
-      name: '상추상추상추상추상추상추',
-      difficulty: '쉬움',
-      imageUrl: 'assets/images/plant_lettuce.png',
-    ),
-  ];
+  // 서버에서 받아올 식물 목록 Future
+  late Future<List<PlantInfo>> _plantListFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _plantListFuture = _fetchPlants();
+  }
+
+  /// 식물 목록 API 호출
+  Future<List<PlantInfo>> _fetchPlants() async {
+    try {
+      final List<dynamic> data = await ApiService.getAllPlants();
+      // JSON 데이터를 PlantInfo 모델 리스트로 변환
+      return data.map((json) => PlantInfo.fromJson(json)).toList();
+    } catch (e) {
+      print('식물 목록 로드 실패: $e');
+      return []; // 에러 시 빈 리스트 반환
+    }
+  }
+
+  /// 식물 이름에 따른 이미지 매핑 (API에 이미지 URL이 없을 경우를 대비한 로직)
+  String _getPlantImage(String plantName) {
+    if (plantName.contains('상추')) return 'assets/images/plant_lettuce.png';
+    if (plantName.contains('토마토')) return 'assets/images/plant_tomato.png'; // 예시
+    if (plantName.contains('바질')) return 'assets/images/plant_basil.png'; // 예시
+    // 기본 이미지
+    return 'assets/images/plant_lettuce.png';
+  }
 
   void _selectPlant(PlantInfo plant) {
     // 식물 선택 확인 다이얼로그
@@ -81,7 +86,7 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
               ),
               SizedBox(height: 8.h),
               Text(
-                '재배 난이도: ${plant.difficulty}',
+                '재배 난이도: ${plant.difficultyKorean}', // 모델의 Getter 활용
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xFF797979),
@@ -96,6 +101,7 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
+                // 선택한 PlantInfo 객체를 홈 화면으로 전달하며 이동
                 Navigator.pushReplacementNamed(
                   context,
                   AppRoutes.homeScreen,
@@ -128,11 +134,27 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
           children: [
             CustomTopTab(text: '재배할 식물 선택'),
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.only(top: 16.h, bottom: 20.h),
-                itemCount: _plants.length,
-                itemBuilder: (context, index) {
-                  return _buildPlantCard(_plants[index]);
+              // FutureBuilder로 데이터 로딩 상태 처리
+              child: FutureBuilder<List<PlantInfo>>(
+                future: _plantListFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text("데이터를 불러오는데 실패했습니다."));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(child: Text("등록된 식물이 없습니다."));
+                  }
+
+                  final plants = snapshot.data!;
+
+                  return ListView.builder(
+                    padding: EdgeInsets.only(top: 16.h, bottom: 20.h),
+                    itemCount: plants.length,
+                    itemBuilder: (context, index) {
+                      return _buildPlantCard(plants[index]);
+                    },
+                  );
                 },
               ),
             ),
@@ -145,20 +167,22 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
     );
   }
 
-  /// 식물 카드
+  /// 식물 카드 위젯
   Widget _buildPlantCard(PlantInfo plant) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
+      margin: EdgeInsets.only(bottom: 16.h, left: 16.w, right: 16.w), // 좌우 여백 추가
       height: 136.h,
       decoration: BoxDecoration(
         color: appTheme.white_A700,
         borderRadius: BorderRadius.only(
           topRight: Radius.circular(20.h),
           bottomRight: Radius.circular(20.h),
+          topLeft: Radius.circular(20.h), // 전체 둥근 모서리를 위해 추가
+          bottomLeft: Radius.circular(20.h),
         ),
         boxShadow: [
           BoxShadow(
-            color: appTheme.color66D3D3,
+            color: appTheme.color66D3D3 ?? Color(0xFF66D3D3),
             blurRadius: 8.h,
             offset: Offset(0, 0),
           ),
@@ -177,6 +201,8 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
                 shape: BoxShape.circle,
               ),
               child: Center(
+                // 로컬 이미지 에셋을 사용하거나 아이콘으로 대체
+                // 예시: Image.asset(_getPlantImage(plant.name))
                 child: Icon(
                   Icons.eco,
                   size: 40.h,
@@ -203,7 +229,7 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
                   ),
                   SizedBox(height: 5.h),
                   Text(
-                    '재배 난이도 : ${plant.difficulty}',
+                    '재배 난이도 : ${plant.difficultyKorean}', // 한글 난이도
                     style: TextStyle(
                       color: Color(0xFF797979),
                       fontSize: 14.fSize,
@@ -253,19 +279,4 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
       ),
     );
   }
-}
-
-/// 식물 정보 모델
-class PlantInfo {
-  final String id;
-  final String name;
-  final String difficulty;
-  final String imageUrl;
-
-  PlantInfo({
-    required this.id,
-    required this.name,
-    required this.difficulty,
-    required this.imageUrl,
-  });
 }

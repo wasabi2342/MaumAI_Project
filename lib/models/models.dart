@@ -60,6 +60,8 @@ class PlantInfo {
   final String? ledInfo;
   final double? ecMin;
   final double? ecMax;
+  final double? co2Min;
+  final double? co2Max;
 
   PlantInfo({
     required this.id,
@@ -73,6 +75,8 @@ class PlantInfo {
     this.ledInfo,
     this.ecMin,
     this.ecMax,
+    this.co2Min,
+    this.co2Max,
   });
 
   factory PlantInfo.fromJson(Map<String, dynamic> json) {
@@ -86,8 +90,11 @@ class PlantInfo {
       humidityMax: json['humidityMax']?.toDouble(),
       lightLevel: json['lightLevel'],
       ledInfo: json['ledInfo'],
+      co2Min: json['co2Min']?.toDouble(),
+      co2Max: json['co2Max']?.toDouble(),
       ecMin: json['ecMin']?.toDouble(),
       ecMax: json['ecMax']?.toDouble(),
+
     );
   }
 
@@ -134,7 +141,13 @@ class PlantInfo {
     }
     return '-';
   }
-
+  /// CO2 범위 문자열
+  String get co2Range {
+    if (co2Min != null && co2Max != null) {
+      return '$co2Min ~ $co2Max';
+    }
+    return '-';
+  }
   /// EC 범위 문자열
   String get ecRange {
     if (ecMin != null && ecMax != null) {
