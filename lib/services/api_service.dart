@@ -14,8 +14,8 @@ class ApiService {
 
   /// 서버 베이스 URL
   /// TODO: 실제 서버 주소로 변경 필요
-  /// 개발: http://localhost:8080/api
-  /// 프로덕션: https://your-server.com/api
+  /// 에뮬레이터: http://10.0.2.2:8080/api
+  /// 실제 기기: http://192.168.x.x:8080/api (PC의 내부 IP)
   static const String baseUrl = 'http://192.168.0.3:8080/api';
 
   /// 저장된 사용자 정보 (로그인 후)
@@ -31,18 +31,6 @@ class ApiService {
   // ============================================
 
   /// 회원가입
-  ///
-  /// POST /api/users/signup
-  ///
-  /// [nickname] 닉네임 (필수)
-  /// [email] 이메일 (필수)
-  /// [password] 비밀번호 (필수)
-  /// [passwordConfirm] 비밀번호 확인 (필수)
-  /// [job] 직업 (선택)
-  /// [age] 나이 (선택)
-  /// [gender] 성별 (선택)
-  ///
-  /// Returns: UserProfileResponse
   static Future<Map<String, dynamic>> signup({
     required String nickname,
     required String email,
@@ -89,13 +77,6 @@ class ApiService {
   }
 
   /// 로그인
-  ///
-  /// POST /api/users/login
-  ///
-  /// [email] 이메일
-  /// [password] 비밀번호
-  ///
-  /// Returns: UserProfileResponse
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -134,20 +115,13 @@ class ApiService {
   }
 
   /// 로그아웃
-  ///
-  /// POST /api/users/logout
-  ///
-  /// 현재는 클라이언트 측에서만 상태 클리어
   static Future<void> logout() async {
     try {
       await http.post(Uri.parse('$baseUrl/users/logout')).timeout(timeoutDuration);
-
-      // 클라이언트 측 상태 클리어
       currentUserId = null;
       currentUserEmail = null;
       currentUserNickname = null;
     } catch (e) {
-      // 로그아웃 실패해도 클라이언트 상태는 클리어
       currentUserId = null;
       currentUserEmail = null;
       currentUserNickname = null;
@@ -155,12 +129,6 @@ class ApiService {
   }
 
   /// 프로필 조회
-  ///
-  /// GET /api/users/{id}
-  ///
-  /// [userId] 사용자 ID
-  ///
-  /// Returns: UserProfileResponse
   static Future<Map<String, dynamic>> getProfile(int userId) async {
     try {
       final response = await http
@@ -178,16 +146,6 @@ class ApiService {
   }
 
   /// 프로필 수정
-  ///
-  /// PUT /api/users/{id}/profile
-  ///
-  /// [userId] 사용자 ID
-  /// [nickname] 닉네임 (선택)
-  /// [job] 직업 (선택)
-  /// [age] 나이 (선택)
-  /// [gender] 성별 (선택)
-  ///
-  /// Returns: UserProfileResponse
   static Future<Map<String, dynamic>> updateProfile({
     required int userId,
     String? nickname,
@@ -223,13 +181,6 @@ class ApiService {
   }
 
   /// 비밀번호 변경
-  ///
-  /// PUT /api/users/{id}/password
-  ///
-  /// [userId] 사용자 ID
-  /// [currentPassword] 현재 비밀번호
-  /// [newPassword] 새 비밀번호
-  /// [newPasswordConfirm] 새 비밀번호 확인
   static Future<void> changePassword({
     required int userId,
     required String currentPassword,
@@ -259,10 +210,6 @@ class ApiService {
   }
 
   /// 회원탈퇴
-  ///
-  /// DELETE /api/users/{id}
-  ///
-  /// [userId] 사용자 ID
   static Future<void> deleteUser(int userId) async {
     try {
       final response = await http
@@ -270,7 +217,6 @@ class ApiService {
           .timeout(timeoutDuration);
 
       if (response.statusCode == 204) {
-        // 회원탈퇴 성공 시 클라이언트 상태 클리어
         currentUserId = null;
         currentUserEmail = null;
         currentUserNickname = null;
@@ -287,12 +233,6 @@ class ApiService {
   // ============================================
 
   /// 전체 식물 리스트 조회
-  ///
-  /// GET /api/plants
-  ///
-  /// 식물 선택 화면에서 사용
-  ///
-  /// Returns: List<PlantInfoResponse>
   static Future<List<dynamic>> getAllPlants() async {
     try {
       final response = await http
@@ -310,14 +250,6 @@ class ApiService {
   }
 
   /// 식물 상세 정보 조회
-  ///
-  /// GET /api/plants/{plantId}
-  ///
-  /// [plantId] 식물 ID
-  ///
-  /// 팝업 상세 정보 표시용
-  ///
-  /// Returns: PlantInfoResponse
   static Future<Map<String, dynamic>> getPlantDetail(int plantId) async {
     try {
       final response = await http
@@ -338,16 +270,26 @@ class ApiService {
   // 3. 사용자 식물 관련 API (UserPlantController)
   // ============================================
 
+  /// [추가됨] 사용자 식물 목록 조회
+  /// 홈 화면 등에서 로그인한 사용자의 식물을 불러올 때 사용
+  static Future<List<dynamic>> getUserPlants(int userId) async {
+    try {
+      final response = await http
+          .get(Uri.parse('$baseUrl/user-plants?userId=$userId'))
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        return []; // 실패하거나 식물이 없으면 빈 리스트 반환
+      }
+    } catch (e) {
+      print('사용자 식물 목록 조회 실패: $e');
+      return [];
+    }
+  }
+
   /// 내 식물 등록
-  ///
-  /// POST /api/user-plants?userId={userId}
-  ///
-  /// [userId] 사용자 ID
-  /// [plantId] 선택한 식물 ID
-  /// [nickname] 식물 별칭 (선택)
-  /// [startedAt] 재배 시작일 (선택, 기본값: 오늘)
-  ///
-  /// Returns: UserPlantResponse
   static Future<Map<String, dynamic>> createUserPlant({
     required int userId,
     required int plantId,
@@ -388,14 +330,6 @@ class ApiService {
   // ============================================
 
   /// 달력 화면용 다이어리 조회
-  ///
-  /// GET /api/diary/calendar?userPlantId={userPlantId}&year={year}&month={month}
-  ///
-  /// [userPlantId] 사용자 식물 ID
-  /// [year] 연도
-  /// [month] 월
-  ///
-  /// Returns: DiaryCalendarResponse
   static Future<Map<String, dynamic>> getDiaryCalendar({
     required int userPlantId,
     required int year,
@@ -404,8 +338,7 @@ class ApiService {
     try {
       final response = await http
           .get(
-        Uri.parse(
-            '$baseUrl/diary/calendar?userPlantId=$userPlantId&year=$year&month=$month'),
+        Uri.parse('$baseUrl/diary/calendar?userPlantId=$userPlantId&year=$year&month=$month'),
       )
           .timeout(timeoutDuration);
 
@@ -420,13 +353,6 @@ class ApiService {
   }
 
   /// 특정 날짜의 다이어리 조회
-  ///
-  /// GET /api/diary?userPlantId={userPlantId}&date={date}
-  ///
-  /// [userPlantId] 사용자 식물 ID
-  /// [date] 날짜
-  ///
-  /// Returns: DiaryResponse
   static Future<Map<String, dynamic>> getDiaryByDate({
     required int userPlantId,
     required DateTime date,
@@ -452,15 +378,6 @@ class ApiService {
   }
 
   /// 다이어리 생성
-  ///
-  /// POST /api/diary (multipart/form-data)
-  ///
-  /// [userPlantId] 사용자 식물 ID
-  /// [diaryDate] 다이어리 날짜
-  /// [content] 내용 (선택)
-  /// [imagePath] 이미지 파일 경로 (선택)
-  ///
-  /// Returns: DiaryResponse
   static Future<Map<String, dynamic>> createDiary({
     required int userPlantId,
     required DateTime diaryDate,
@@ -473,14 +390,12 @@ class ApiService {
         Uri.parse('$baseUrl/diary'),
       );
 
-      // form-data 파라미터
       request.fields['userPlantId'] = userPlantId.toString();
       request.fields['diaryDate'] = diaryDate.toIso8601String().split('T')[0];
       if (content != null && content.isNotEmpty) {
         request.fields['content'] = content;
       }
 
-      // 이미지 파일 첨부
       if (imagePath != null && imagePath.isNotEmpty) {
         final file = File(imagePath);
         if (await file.exists()) {
@@ -507,14 +422,6 @@ class ApiService {
   }
 
   /// 다이어리 수정
-  ///
-  /// PUT /api/diary/{diaryId} (multipart/form-data)
-  ///
-  /// [diaryId] 다이어리 ID
-  /// [content] 수정할 내용 (선택)
-  /// [imagePath] 수정할 이미지 파일 경로 (선택)
-  ///
-  /// Returns: DiaryResponse
   static Future<Map<String, dynamic>> updateDiary({
     required int diaryId,
     String? content,
@@ -553,10 +460,6 @@ class ApiService {
   }
 
   /// 다이어리 삭제
-  ///
-  /// DELETE /api/diary/{diaryId}
-  ///
-  /// [diaryId] 다이어리 ID
   static Future<void> deleteDiary(int diaryId) async {
     try {
       final response = await http
@@ -572,14 +475,6 @@ class ApiService {
   }
 
   /// 타임라인 조회
-  ///
-  /// GET /api/diary/timeline?userPlantId={userPlantId}
-  ///
-  /// [userPlantId] 사용자 식물 ID
-  ///
-  /// 사진이 있는 다이어리만 조회
-  ///
-  /// Returns: DiaryTimelineResponse
   static Future<Map<String, dynamic>> getTimeline(int userPlantId) async {
     try {
       final response = await http
