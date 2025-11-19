@@ -3,15 +3,13 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_export.dart';
 import '../../widgets/custom_top_tab.dart';
+import '../../widgets/notification_sidebar.dart';
 
 /// DiagnosisScreen - AI 식물 진단 화면
 ///
-/// 기능:
-/// - 사진 촬영을 통한 AI 식물 진단
-/// - 건강 체크 결과 표시
-/// - 병해충 진단 결과 표시
-/// - 수확시기 예측
-/// - 자주 묻는 질문 섹션
+/// 수정 사항:
+/// - 상단 초록색 영역 하단에 그림자(BoxShadow) 추가
+/// - 하단 영역의 배경색을 투명으로 변경하여 그림자가 가려지지 않도록 처리 (Scaffold 배경색이 흰색이라 흰색으로 보임)
 class DiagnosisScreen extends StatefulWidget {
   const DiagnosisScreen({Key? key}) : super(key: key);
 
@@ -20,7 +18,7 @@ class DiagnosisScreen extends StatefulWidget {
 }
 
 class _DiagnosisScreenState extends State<DiagnosisScreen> {
-  // 진단 결과 데이터 (실제로는 API에서 가져올 데이터)
+  // 진단 결과 데이터
   final DiagnosisResult _diagnosisResult = DiagnosisResult(
     healthStatus: '식물상태가 양호',
     healthAdvice: '현재환경을 유지하세요',
@@ -42,7 +40,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
   ];
 
   void _capturePhoto() {
-    // 사진 촬영 기능
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.3),
@@ -56,11 +53,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.camera_alt,
-                color: appTheme.teal_400,
-                size: 48.h,
-              ),
+              Icon(Icons.camera_alt, color: appTheme.teal_400, size: 48.h),
               SizedBox(height: 16.h),
               Text(
                 'AI 식물 진단',
@@ -103,35 +96,128 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     );
   }
 
+  void _showNotificationSidebar(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Color(0x3FD9D9D9),
+      transitionDuration: Duration(milliseconds: 300),
+      pageBuilder: (BuildContext buildContext, Animation animation,
+          Animation secondaryAnimation) {
+        return NotificationSidebar(
+          onClose: () {
+            Navigator.of(context).pop();
+          },
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOut;
+        var tween =
+        Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: appTheme.green_50,
-      appBar: CustomTopAppBar(),
+      backgroundColor: appTheme.white_A700,
       body: SafeArea(
         child: Center(
           child: Container(
             constraints: BoxConstraints(maxWidth: 393.h),
-            child: Column(
-              children: [
-                CustomTopTab(text: '진단'),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        SizedBox(height: 4.h),
-                        _buildTimeAnalysisLabel(),
-                        SizedBox(height: 12.h),
-                        _buildPhotoAnalysisSection(),
-                        SizedBox(height: 16.h),
-                        _buildDiagnosisCardsRow(),
-                        SizedBox(height: 16.h),
-                        _buildHarvestPredictionCard(),
-                        SizedBox(height: 16.h),
-                        _buildFaqSection(),
-                        SizedBox(height: 20.h),
-                      ],
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  floating: true,
+                  snap: true,
+                  pinned: false,
+                  elevation: 0,
+                  backgroundColor: appTheme.green_50,
+                  automaticallyImplyLeading: false,
+                  title: CustomImageView(
+                    imagePath: ImageConstant.img,
+                    height: 28.h,
+                    fit: BoxFit.contain,
+                  ),
+                  centerTitle: true,
+                  actions: [
+                    IconButton(
+                      onPressed: () => _showNotificationSidebar(context),
+                      icon: Icon(
+                        Icons.notifications_none_outlined,
+                        color: appTheme.blue_gray_700,
+                        size: 28.h,
+                      ),
                     ),
+                    IconButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, AppRoutes.myPageScreen),
+                      icon: Icon(
+                        Icons.person_outline,
+                        color: appTheme.blue_gray_700,
+                        size: 28.h,
+                      ),
+                    ),
+                    SizedBox(width: 16.h),
+                  ],
+                ),
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      // 1. 상단 초록색 배경 영역 (사진 촬영까지) + 그림자 추가
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: appTheme.green_50,
+                          // [수정] 하단 경계선에 그림자 추가
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05), // 은은한 그림자 색상
+                              blurRadius: 20.h, // 그림자 퍼짐 정도
+                              offset: Offset(0, 10.h), // 그림자 위치 (아래쪽으로)
+                              spreadRadius: 0,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            CustomTopTab(text: '진단'),
+                            SizedBox(height: 4.h),
+                            _buildTimeAnalysisLabel(),
+                            SizedBox(height: 12.h),
+                            _buildPhotoAnalysisSection(),
+                            // 초록색 배경 끝
+                          ],
+                        ),
+                      ),
+
+                      // 2. 하단 흰색 배경 영역 (건강체크부터 끝까지)
+                      // [수정] color를 제거하여 투명하게 만듦 (상단 그림자가 보이도록)
+                      Container(
+                        width: double.infinity,
+                        // color: appTheme.white_A700, // <-- 제거됨 (Scaffold 배경이 흰색이므로 투명이어도 흰색으로 보임)
+                        child: Column(
+                          children: [
+                            // 상단 그림자가 보일 수 있도록 충분한 여백
+                            SizedBox(height: 30.h),
+                            _buildDiagnosisCardsRow(),
+                            SizedBox(height: 16.h),
+                            _buildHarvestPredictionCard(),
+                            SizedBox(height: 16.h),
+                            _buildFaqSection(),
+                            SizedBox(height: 20.h),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -145,7 +231,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     );
   }
 
-  /// 사진 분석 라벨
   Widget _buildTimeAnalysisLabel() {
     return Align(
       alignment: Alignment.centerLeft,
@@ -159,11 +244,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.access_time,
-              size: 16.h,
-              color: const Color(0xFF32C697),
-            ),
+            Icon(Icons.access_time, size: 16.h, color: const Color(0xFF32C697)),
             SizedBox(width: 4.h),
             Text(
               '사진 분석',
@@ -181,8 +262,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     );
   }
 
-
-  /// 사진 분석 섹션
   Widget _buildPhotoAnalysisSection() {
     return Container(
       width: double.infinity,
@@ -212,11 +291,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.camera_alt,
-                size: 40.h,
-                color: const Color(0xFF32C697),
-              ),
+              Icon(Icons.camera_alt, size: 40.h, color: const Color(0xFF32C697)),
               SizedBox(height: 10.h),
               Text(
                 '사진 촬영',
@@ -237,25 +312,19 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     );
   }
 
-  /// 진단 카드 행 (건강체크, 병해충진단)
   Widget _buildDiagnosisCardsRow() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.h),
       child: Row(
         children: [
-          Expanded(
-            child: _buildHealthCheckCard(),
-          ),
+          Expanded(child: _buildHealthCheckCard()),
           SizedBox(width: 21.h),
-          Expanded(
-            child: _buildPestDiagnosisCard(),
-          ),
+          Expanded(child: _buildPestDiagnosisCard()),
         ],
       ),
     );
   }
 
-  /// 건강체크 카드
   Widget _buildHealthCheckCard() {
     return Container(
       width: 142.h,
@@ -277,7 +346,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       ),
       child: Column(
         children: [
-          // 헤더 - custom_top_tab과 동일한 그라데이션
           Container(
             width: double.infinity,
             height: 36.h,
@@ -285,19 +353,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  appTheme.green_200,  // #A0ECB1
-                  appTheme.teal_400,   // #32C697
-                ],
+                colors: [appTheme.green_200, appTheme.teal_400],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0x66D3D3D3),
-                  blurRadius: 8.h,
-                  offset: Offset(0, 4.h),
-                  spreadRadius: 0,
-                ),
-              ],
             ),
             child: Center(
               child: Text(
@@ -314,19 +371,16 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               ),
             ),
           ),
-          // 내용
           Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(left: 10.h, top: 15.h, right: 10.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: List.generate(
-                  4,
-                      (index) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                    left: 10.h, top: 15.h, right: 10.h, bottom: 15.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Text(
                         _diagnosisResult.healthStatus,
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -334,12 +388,13 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                           fontSize: 14.fSize,
                           fontFamily: 'Pretendard',
                           fontWeight: FontWeight.w500,
-                          height: 1.0,
-                          letterSpacing: -0.35,
+                          height: 1.3,
                         ),
                       ),
-                      SizedBox(height: 24.h),
-                      Text(
+                    ),
+                    SizedBox(height: 24.h),
+                    Center(
+                      child: Text(
                         _diagnosisResult.healthAdvice,
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -347,13 +402,11 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                           fontSize: 14.fSize,
                           fontFamily: 'Pretendard',
                           fontWeight: FontWeight.w500,
-                          height: 1.0,
-                          letterSpacing: -0.35,
+                          height: 1.3,
                         ),
                       ),
-                      if (index < 3) SizedBox(height: 24.h),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -363,7 +416,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     );
   }
 
-  /// 병해충 진단 카드
   Widget _buildPestDiagnosisCard() {
     return Container(
       width: 198.h,
@@ -385,7 +437,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       ),
       child: Column(
         children: [
-          // 헤더 - custom_top_tab과 동일한 그라데이션
           Container(
             width: double.infinity,
             height: 36.h,
@@ -393,19 +444,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  appTheme.green_200,  // #A0ECB1
-                  appTheme.teal_400,   // #32C697
-                ],
+                colors: [appTheme.green_200, appTheme.teal_400],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0x66D3D3D3),
-                  blurRadius: 8.h,
-                  offset: Offset(0, 4.h),
-                  spreadRadius: 0,
-                ),
-              ],
             ),
             child: Center(
               child: Text(
@@ -422,60 +462,38 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               ),
             ),
           ),
-          // 내용
           Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(left: 16.h, top: 15.h, right: 16.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: List.generate(
-                  3,
-                      (index) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            _diagnosisResult.pestStatus,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: const Color(0xFF797979),
-                              fontSize: 14.fSize,
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w500,
-                              height: 1.0,
-                              letterSpacing: -0.35,
-                            ),
-                          ),
-                        ],
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                    left: 16.h, top: 15.h, right: 16.h, bottom: 15.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      _diagnosisResult.pestStatus,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFF797979),
+                        fontSize: 14.fSize,
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
                       ),
-                      SizedBox(height: 24.h),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            _diagnosisResult.pestAdvice,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: const Color(0xFF797979),
-                              fontSize: 14.fSize,
-                              fontFamily: 'Pretendard',
-                              fontWeight: FontWeight.w500,
-                              height: 1.0,
-                              letterSpacing: -0.35,
-                            ),
-                          ),
-                        ],
+                    ),
+                    SizedBox(height: 24.h),
+                    Text(
+                      _diagnosisResult.pestAdvice,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFF797979),
+                        fontSize: 14.fSize,
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
                       ),
-                      if (index < 2) SizedBox(height: 24.h),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -485,7 +503,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     );
   }
 
-  /// 수확시기 예측 카드
   Widget _buildHarvestPredictionCard() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.h),
@@ -503,26 +520,16 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               color: const Color(0x66D3D3D3),
               blurRadius: 8.h,
               offset: Offset(0, 4.h),
-              spreadRadius: 0,
             ),
           ],
         ),
         child: Column(
           children: [
-            // 헤더
             Container(
               width: double.infinity,
               height: 36.h,
               decoration: BoxDecoration(
                 color: const Color(0xFFE3FAE8),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0x66D3D3D3),
-                    blurRadius: 8.h,
-                    offset: Offset(0, 4.h),
-                    spreadRadius: 0,
-                  ),
-                ],
               ),
               child: Center(
                 child: Text(
@@ -533,20 +540,16 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                     fontSize: 14.fSize,
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w700,
-                    height: 1.0,
-                    letterSpacing: -0.35,
                   ),
                 ),
               ),
             ),
-            // 내용
             Padding(
               padding: EdgeInsets.only(left: 18.h, top: 15.h),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -556,8 +559,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                         fontSize: 14.fSize,
                         fontFamily: 'Pretendard',
                         fontWeight: FontWeight.w700,
-                        height: 1.0,
-                        letterSpacing: -0.35,
                       ),
                     ),
                     SizedBox(height: 4.h),
@@ -568,8 +569,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                         fontSize: 10.fSize,
                         fontFamily: 'Pretendard',
                         fontWeight: FontWeight.w500,
-                        height: 1.0,
-                        letterSpacing: -0.25,
                       ),
                     ),
                   ],
@@ -582,7 +581,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     );
   }
 
-  /// 자주 묻는 질문 섹션
   Widget _buildFaqSection() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.h),
@@ -603,27 +601,15 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               color: const Color(0x66D3D3D3),
               blurRadius: 8.h,
               offset: Offset(0, 4.h),
-              spreadRadius: 0,
             ),
           ],
         ),
         child: Column(
           children: [
-            // 헤더
             Container(
               width: double.infinity,
               height: 36.h,
-              decoration: BoxDecoration(
-                color: const Color(0xFFD3D3D3),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0x66D3D3D3),
-                    blurRadius: 8.h,
-                    offset: Offset(0, 4.h),
-                    spreadRadius: 0,
-                  ),
-                ],
-              ),
+              decoration: BoxDecoration(color: const Color(0xFFD3D3D3)),
               child: Center(
                 child: Text(
                   '자주 묻는 질문',
@@ -633,13 +619,10 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                     fontSize: 14.fSize,
                     fontFamily: 'Pretendard',
                     fontWeight: FontWeight.w600,
-                    height: 1.0,
-                    letterSpacing: -0.35,
                   ),
                 ),
               ),
             ),
-            // 질문 목록
             Expanded(
               child: ListView.builder(
                 shrinkWrap: true,
@@ -650,40 +633,20 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                   return Padding(
                     padding: EdgeInsets.only(bottom: 12.h),
                     child: InkWell(
-                      onTap: () {
-                        // FAQ 상세보기
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(_faqItems[index].question),
-                            backgroundColor: appTheme.teal_400,
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
+                      onTap: () {},
                       child: Container(
                         width: 302.h,
                         height: 24.h,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(),
                         child: Padding(
                           padding: EdgeInsets.only(left: 5.h, top: 5.h),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                _faqItems[index].question,
-                                style: TextStyle(
-                                  color: const Color(0xFF797979),
-                                  fontSize: 14.fSize,
-                                  fontFamily: 'Pretendard',
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.0,
-                                  letterSpacing: -0.35,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            _faqItems[index].question,
+                            style: TextStyle(
+                              color: const Color(0xFF797979),
+                              fontSize: 14.fSize,
+                              fontFamily: 'Pretendard',
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
@@ -697,10 +660,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       ),
     );
   }
-
 }
 
-/// 진단 결과 데이터 모델
 class DiagnosisResult {
   final String healthStatus;
   final String healthAdvice;
@@ -717,7 +678,6 @@ class DiagnosisResult {
   });
 }
 
-/// FAQ 아이템 모델
 class FaqItem {
   final String question;
 
