@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
 import '../../services/api_service.dart';
 import '../../models/models.dart'; // UserProfile 모델 사용을 위해 필요
+import '../../widgets/custom_top_app_bar.dart'; // CustomTopAppBar import 확인
+import '../../widgets/custom_bottom_nav_bar.dart'; // CustomBottomNavBar import 확인
 
 /// 마이페이지 화면
 ///
@@ -10,6 +12,7 @@ import '../../models/models.dart'; // UserProfile 모델 사용을 위해 필요
 /// - 프로필 수정 화면 이동 (갔다 오면 자동 갱신)
 /// - 설정 옵션 (푸시 알림, 양액/물교체 알림 - 현재는 UI만 구현)
 /// - API 로그아웃 연동
+/// - [추가] '마이페이지' 타이틀 옆 뒤로가기 버튼 구현
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({Key? key}) : super(key: key);
 
@@ -35,7 +38,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
   /// 사용자 프로필 정보 조회 API 호출
   Future<void> _fetchUserProfile() async {
-    // 로그인된 사용자 ID가 없으면 로딩 종료 (로그인 화면으로 보내야 할 수도 있음)
+    // 로그인된 사용자 ID가 없으면 로딩 종료
     if (ApiService.currentUserId == null) {
       setState(() => _isLoading = false);
       return;
@@ -50,7 +53,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
     } catch (e) {
       print('프로필 로드 실패: $e');
       setState(() => _isLoading = false);
-      // 에러 발생 시 스낵바 등으로 알림 가능
     }
   }
 
@@ -58,7 +60,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appTheme.green_50,
-      appBar: CustomTopAppBar(),
+      appBar: CustomTopAppBar(), // 기존 앱바 유지
       body: SafeArea(
         child: _isLoading
             ? Center(child: CircularProgressIndicator(color: appTheme.teal_400))
@@ -90,13 +92,14 @@ class _MyPageScreenState extends State<MyPageScreen> {
   /// 프로필 섹션 (API 데이터 적용)
   Widget _buildProfileSection() {
     // 데이터가 없으면 기본값 또는 ApiService의 static 변수 사용
-    final nickname = _userProfile?.nickname ?? ApiService.currentUserNickname ?? '사용자';
+    final nickname =
+        _userProfile?.nickname ?? ApiService.currentUserNickname ?? '사용자';
     final email = _userProfile?.email ?? ApiService.currentUserEmail ?? '-';
 
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
-        top:16.h,
+        top: 16.h,
       ),
       decoration: BoxDecoration(
         color: appTheme.green_50,
@@ -110,17 +113,42 @@ class _MyPageScreenState extends State<MyPageScreen> {
       ),
       child: Column(
         children: [
-          // 마이페이지 타이틀
-          Text(
-            '마이페이지',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: appTheme.teal_400,
-              fontSize: 14.fSize,
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w600,
-              height: 1.50,
-              letterSpacing: -0.32,
+          // [수정] 마이페이지 타이틀 및 뒤로가기 버튼 (Stack 사용)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w), // 좌우 여백 추가
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 뒤로가기 버튼 (왼쪽 정렬)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context), // 이전 페이지로 이동
+                    child: Container(
+                      color: Colors.transparent, // 터치 영역 확보
+                      padding: EdgeInsets.all(4.h),
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 18.h,
+                        color: appTheme.teal_400, // 타이틀 색상과 통일
+                      ),
+                    ),
+                  ),
+                ),
+                // 마이페이지 타이틀 (중앙 정렬)
+                Text(
+                  '마이페이지',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: appTheme.teal_400,
+                    fontSize: 14.fSize,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w600,
+                    height: 1.50,
+                    letterSpacing: -0.32,
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: 32.h),
