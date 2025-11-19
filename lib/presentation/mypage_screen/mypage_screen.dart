@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
 import '../../services/api_service.dart';
 import '../../models/models.dart'; // UserProfile 모델 사용을 위해 필요
-import '../../widgets/custom_top_app_bar.dart'; // CustomTopAppBar import 확인
-import '../../widgets/custom_bottom_nav_bar.dart'; // CustomBottomNavBar import 확인
+import '../../widgets/custom_top_app_bar.dart';
+import '../../widgets/custom_bottom_nav_bar.dart';
 
 /// 마이페이지 화면
 ///
 /// 기능:
 /// - API를 통해 프로필 정보(이름, 이메일) 로드 및 표시
 /// - 프로필 수정 화면 이동 (갔다 오면 자동 갱신)
-/// - 설정 옵션 (푸시 알림, 양액/물교체 알림 - 현재는 UI만 구현)
+/// - 설정 옵션 (푸시 알림, 양액/물교체 알림)
 /// - API 로그아웃 연동
-/// - [추가] '마이페이지' 타이틀 옆 뒤로가기 버튼 구현
+/// - 상단: 뒤로가기 버튼 및 타이틀 (Stack 구조)
+/// - 하단: 네비게이션 바 (모두 회색 처리, 애니메이션 제거)
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({Key? key}) : super(key: key);
 
@@ -59,8 +60,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: appTheme.green_50,
-      appBar: CustomTopAppBar(), // 기존 앱바 유지
+      backgroundColor: appTheme.white_A700,
+      appBar: CustomTopAppBar(), // 상단 앱바
       body: SafeArea(
         child: _isLoading
             ? Center(child: CircularProgressIndicator(color: appTheme.teal_400))
@@ -83,8 +84,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
           ],
         ),
       ),
+      // [수정] 하단 네비게이션 바 설정
+      // activeRoute를 myPageScreen으로 설정하여 모든 탭 아이콘을 회색으로 만듦
+      // 이를 통해 '홈' 버튼 등 다른 탭을 누를 때 CustomBottomNavBar 내부의
+      // _navigateWithoutAnimation이 실행되어 애니메이션 없이 이동함
       bottomNavigationBar: CustomBottomNavBar(
-        activeRoute: AppRoutes.homeScreen,
+        activeRoute: AppRoutes.myPageScreen,
       ),
     );
   }
@@ -113,9 +118,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
       ),
       child: Column(
         children: [
-          // [수정] 마이페이지 타이틀 및 뒤로가기 버튼 (Stack 사용)
+          // 타이틀 및 뒤로가기 버튼 (Stack 사용)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w), // 좌우 여백 추가
+            padding: EdgeInsets.symmetric(horizontal: 24.w),
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -130,7 +135,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       child: Icon(
                         Icons.arrow_back_ios_new,
                         size: 18.h,
-                        color: appTheme.teal_400, // 타이틀 색상과 통일
+                        color: appTheme.teal_400,
                       ),
                     ),
                   ),
@@ -174,7 +179,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
             ),
             child: Row(
               children: [
-                // 프로필 사진 (기본 아이콘)
+                // 프로필 사진
                 Container(
                   width: 90.h,
                   height: 90.h,
@@ -195,7 +200,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        nickname, // API에서 가져온 닉네임
+                        nickname,
                         style: TextStyle(
                           color: Color(0xFF797979),
                           fontSize: 14.fSize,
@@ -207,7 +212,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       ),
                       SizedBox(height: 19.h),
                       Text(
-                        email, // API에서 가져온 이메일
+                        email,
                         style: TextStyle(
                           color: Color(0xFF797979),
                           fontSize: 12.fSize,
@@ -221,7 +226,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       // 프로필 수정 버튼
                       GestureDetector(
                         onTap: () {
-                          // 수정 화면으로 이동하고 돌아왔을 때 데이터 갱신
                           Navigator.pushNamed(
                             context,
                             AppRoutes.profileEditScreen,
@@ -290,7 +294,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 설정 타이틀
           Text(
             '설정',
             style: TextStyle(
@@ -303,7 +306,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
             ),
           ),
           SizedBox(height: 35.h),
-          // 푸시 알림
           _buildSettingItem(
             icon: Icons.notifications_none_outlined,
             title: '푸시 알림',
@@ -315,7 +317,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
             },
           ),
           SizedBox(height: 16.h),
-          // 양액/물교체 알림
           _buildSettingItem(
             icon: Icons.water_drop_outlined,
             title: '영약 / 물교체 알림',
@@ -371,7 +372,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
           ),
         ),
         SizedBox(width: 10.w),
-        // 커스텀 토글 스위치
         GestureDetector(
           onTap: () => onChanged(!value),
           child: Container(
@@ -446,11 +446,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  /// 로그아웃 확인 다이얼로그 (API 연동)
+  /// 로그아웃 확인 다이얼로그
   void _showLogoutDialog() {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.4), // 배경 어둡게
+      barrierColor: Colors.black.withOpacity(0.4),
       builder: (context) => AlertDialog(
         backgroundColor: appTheme.white_A700,
         surfaceTintColor: Colors.transparent,
@@ -485,10 +485,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
           ),
           TextButton(
             onPressed: () async {
-              // 다이얼로그 닫기
               Navigator.pop(context);
-
-              // 로딩 표시 (선택 사항)
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -497,16 +494,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
               );
 
               try {
-                // API 로그아웃 호출
                 await ApiService.logout();
               } catch (e) {
-                // 로그아웃 실패해도 로컬에서는 로그아웃 처리
                 print('로그아웃 API 호출 실패: $e');
               } finally {
-                // 로딩 닫기
                 Navigator.pop(context);
-
-                // 로그인 화면으로 이동 (모든 스택 제거)
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   AppRoutes.loginScreen,
