@@ -16,7 +16,7 @@ class ApiService {
   /// TODO: 실제 서버 주소로 변경 필요
   /// 개발: http://localhost:8080/api
   /// 프로덕션: https://your-server.com/api
-  static const String baseUrl = 'http://192.168.0.10:8080/api';
+  static const String baseUrl = 'http://192.168.0.3:8080/api';
 
   /// 저장된 사용자 정보 (로그인 후)
   static int? currentUserId;

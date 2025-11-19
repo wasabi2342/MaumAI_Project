@@ -5,6 +5,7 @@ import '../../core/app_export.dart';
 import '../../widgets/custom_image_view.dart';
 import '../../widgets/custom_text_form_field.dart';
 import '../../widgets/custom_dropdown.dart';
+import '../../services/api_service.dart';
 
 /// OnboardingScreen - 첫 로그인 시 개인정보 입력 화면
 ///
@@ -123,11 +124,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  void _completeOnboarding() {
-    // 온보딩 데이터 저장 (실제로는 API 호출 또는 로컬 저장소에 저장)
-    print('직업: $_selectedOccupation');
-    print('나이: ${_ageController.text}');
-    print('성별: $_selectedGender');
+  void _completeOnboarding() async {
+    // 로그인된 사용자 ID 확인
+    if (ApiService.currentUserId == null) {
+      _showErrorSnackBar('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.loginScreen,
+            (route) => false,
+      );
+      return;
+    }
 
     // 로딩 표시
     showDialog(
@@ -140,9 +147,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
     );
 
-    // 데이터 저장 시뮬레이션
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pop(); // 로딩 닫기
+    try {
+      // API 호출: 프로필 업데이트
+      final response = await ApiService.updateProfile(
+        userId: ApiService.currentUserId!,
+        job: _selectedOccupation,
+        age: int.tryParse(_ageController.text),
+        gender: _selectedGender,
+      );
+
+      print('프로필 업데이트 성공: $response');
+
+      // 로딩 닫기
+      Navigator.of(context).pop();
 
       // 성공 메시지
       ScaffoldMessenger.of(context).showSnackBar(
@@ -160,7 +177,84 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           AppRoutes.guideScreen,
         );
       });
-    });
+    } catch (e) {
+      // 로딩 닫기
+      Navigator.of(context).pop();
+
+      // 에러 메시지
+      String errorMessage;
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup')) {
+        errorMessage = '서버에 연결할 수 없습니다.\n네트워크 연결을 확인해주세요.';
+      } else if (e.toString().contains('TimeoutException')) {
+        errorMessage = '서버 응답 시간이 초과되었습니다.';
+      } else {
+        errorMessage = '프로필 업데이트에 실패했습니다.\n잠시 후 다시 시도해주세요.';
+      }
+
+      _showErrorSnackBar(errorMessage);
+      print('프로필 업데이트 실패: $e');
+
+      // 실패해도 다음 화면으로 진행할지 물어보기
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.h),
+          ),
+          title: Text(
+            '프로필 업데이트 실패',
+            style: TextStyle(
+              color: appTheme.teal_400,
+              fontSize: 16.fSize,
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Text(
+            '프로필 정보 저장에 실패했습니다.\n나중에 마이페이지에서 수정할 수 있습니다.\n\n계속 진행하시겠습니까?',
+            style: TextStyle(
+              color: Color(0xFF3B3B3B),
+              fontSize: 14.fSize,
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                '재시도',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14.fSize,
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(
+                  context,
+                  AppRoutes.guideScreen,
+                );
+              },
+              child: Text(
+                '계속',
+                style: TextStyle(
+                  color: appTheme.teal_400,
+                  fontSize: 14.fSize,
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
