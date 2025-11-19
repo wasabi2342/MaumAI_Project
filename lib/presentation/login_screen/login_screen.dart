@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'dart:async'; // TimeoutException 처리를 위해 필요 (ApiService에서 발생 시)
 
 import '../../core/app_export.dart';
 import '../../widgets/custom_button.dart';
@@ -8,14 +9,13 @@ import '../../widgets/custom_text_form_field.dart';
 import '../../services/api_service.dart';
 import '../../models/models.dart';
 
-/// LoginScreen - 로그인 화면 (Figma 디자인에 정확히 맞춤)
+/// LoginScreen - 로그인 화면
 ///
-/// Figma 디자인 사양:
-/// - 그라데이션: Color(0xFFE3FAE8) → Color(0xFFA0ECB1)
-/// - 입력 필드 borderRadius: 20
-/// - 로그인 버튼: height 38, borderRadius 20
-/// - 소셜 로그인 버튼: height 36, borderRadius 100 (완전히 둥근 형태)
-/// - 카카오 버튼 색상: Color(0xFFFFE812)
+/// 기능:
+/// - 이메일/비밀번호 입력
+/// - 로그인 API 연동 (ApiService.login)
+/// - 로그인 성공 시 홈 화면(AppRoutes.homeScreen)으로 이동
+/// - 카카오/구글 소셜 로그인 버튼 (UI 구현)
 class LoginScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -29,35 +29,39 @@ class LoginScreen extends StatelessWidget {
       backgroundColor: appTheme.white_A700,
       body: Container(
         width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFE3FAE8), // Figma 디자인
-              Color(0xFFA0ECB1), // Figma 디자인
+              Color(0xFFE3FAE8), // Figma 디자인 색상
+              Color(0xFFA0ECB1), // Figma 디자인 색상
             ],
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 46.h, vertical: 46.h),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildLogoSection(context),
-                  SizedBox(height: 32.h),
-                  _buildInputFieldsSection(context),
-                  SizedBox(height: 28.h),
-                  _buildLoginButton(context),
-                  SizedBox(height: 26.h),
-                  _buildForgotPasswordSection(context),
-                  SizedBox(height: 18.h),
-                  _buildSocialLoginSection(context),
-                  SizedBox(height: 28.h),
-                ],
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 46.h, vertical: 46.h),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(height: 50.h), // 상단 여백 추가
+                    _buildLogoSection(context),
+                    SizedBox(height: 32.h),
+                    _buildInputFieldsSection(context),
+                    SizedBox(height: 28.h),
+                    _buildLoginButton(context),
+                    SizedBox(height: 26.h),
+                    _buildForgotPasswordSection(context),
+                    SizedBox(height: 18.h),
+                    _buildSocialLoginSection(context),
+                    SizedBox(height: 28.h),
+                  ],
+                ),
               ),
             ),
           ),
@@ -70,7 +74,6 @@ class LoginScreen extends StatelessWidget {
   Widget _buildLogoSection(BuildContext context) {
     return CustomImageView(
       imagePath: ImageConstant.img,
-
       width: 230.h, // 로고 + 텍스트를 포함한 전체 너비
       fit: BoxFit.contain,
     );
@@ -124,9 +127,7 @@ class LoginScreen extends StatelessWidget {
               height: 1.0,
               letterSpacing: -0.30,
             ),
-
           ),
-
         ),
         SizedBox(height: 8.h),
         // 비밀번호 입력 필드
@@ -268,9 +269,9 @@ class LoginScreen extends StatelessWidget {
     return null;
   }
 
-  /// 로그인 버튼 클릭 이벤트
+  /// 로그인 버튼 클릭 이벤트 (API 연동 적용)
   void _onLoginPressed(BuildContext context) async {
-    // 마스터 계정 체크
+    // 1. 마스터 계정 체크 (테스트용)
     if (emailController.text == '1111@naver.com' &&
         passwordController.text == '111111') {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -280,12 +281,13 @@ class LoginScreen extends StatelessWidget {
           duration: Duration(seconds: 2),
         ),
       );
+      // 홈 화면으로 이동하면서 이전 스택 제거
       Navigator.pushNamedAndRemoveUntil(
           context, AppRoutes.homeScreen, (route) => false);
       return;
     }
 
-    // 폼 유효성 검사
+    // 2. 폼 유효성 검사 및 API 호출
     if (_formKey.currentState?.validate() ?? false) {
       // 로딩 표시
       showDialog(
@@ -305,7 +307,7 @@ class LoginScreen extends StatelessWidget {
           password: passwordController.text,
         );
 
-        // UserProfile 모델로 변환
+        // 응답 데이터를 UserProfile 모델로 변환
         final userProfile = UserProfile.fromJson(result);
 
         print('로그인 성공: ${userProfile.nickname} (ID: ${userProfile.id})');
@@ -322,9 +324,10 @@ class LoginScreen extends StatelessWidget {
           ),
         );
 
-        // 홈 화면으로 이동
+        // 3. 홈 화면으로 이동 (뒤로가기 방지를 위해 pushNamedAndRemoveUntil 사용)
         Navigator.pushNamedAndRemoveUntil(
             context, AppRoutes.homeScreen, (route) => false);
+
       } catch (e) {
         // 로딩 다이얼로그 닫기
         Navigator.of(context).pop();
@@ -333,15 +336,17 @@ class LoginScreen extends StatelessWidget {
         String errorMessage;
         String errorStr = e.toString();
 
-        if (errorStr.contains('이메일') || errorStr.contains('비밀번호')) {
+        if (errorStr.contains('이메일') || errorStr.contains('비밀번호') || errorStr.contains('Bad credentials')) {
           errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
         } else if (errorStr.contains('SocketException') ||
+            errorStr.contains('Connection refused') ||
             errorStr.contains('Failed host lookup')) {
           errorMessage = '서버에 연결할 수 없습니다.\n네트워크 연결을 확인해주세요.';
         } else if (errorStr.contains('TimeoutException')) {
           errorMessage = '서버 응답 시간이 초과되었습니다.';
         } else {
           errorMessage = '로그인에 실패했습니다.\n잠시 후 다시 시도해주세요.';
+          print("상세 에러: $errorStr"); // 디버깅용
         }
 
         // 에러 메시지 표시
@@ -369,7 +374,7 @@ class LoginScreen extends StatelessWidget {
       ),
     );
 
-    // 카카오 로그인 프로세스 시뮬레이션
+    // 카카오 로그인 프로세스 시뮬레이션 (추후 실제 구현 필요)
     Future.delayed(Duration(seconds: 2), () {
       Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
 
@@ -397,7 +402,7 @@ class LoginScreen extends StatelessWidget {
       ),
     );
 
-    // 구글 로그인 프로세스 시뮬레이션
+    // 구글 로그인 프로세스 시뮬레이션 (추후 실제 구현 필요)
     Future.delayed(Duration(seconds: 2), () {
       Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
 
