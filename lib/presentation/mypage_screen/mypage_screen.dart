@@ -96,8 +96,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
-        top: 59.h,
-        bottom: 39.h,
+        top:16.h,
       ),
       decoration: BoxDecoration(
         color: appTheme.green_50,
@@ -124,7 +123,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
               letterSpacing: -0.32,
             ),
           ),
-          SizedBox(height: 61.h),
+          SizedBox(height: 32.h),
           // 프로필 카드
           Container(
             width: 361.w,
