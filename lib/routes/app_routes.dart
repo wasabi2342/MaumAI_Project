@@ -35,7 +35,7 @@ class AppRoutes {
     deviceSelectionScreen: (context) => DeviceSelectionScreen(),
     plantSelectionScreen: (context) => PlantSelectionScreen(),
     homeScreen: (context) => HomeScreen(),
-    diaryScreen: (context) => DiaryScreenWithAPI(userPlantId: 1), // TODO: 실제 userPlantId 전달
+    diaryScreen: (context) => DiaryScreen(), // TODO: 실제 userPlantId 전달
     diagnosisScreen: (context) => DiagnosisScreen(),
     controlScreen: (context) => ControlScreen(),
     appNavigationScreen: (context) => AppNavigationScreen(),
