@@ -118,7 +118,7 @@ class CustomBottomNavBar extends StatelessWidget {
               top: 12.h,
               child: Container(
                 width: 56.w,
-                height: 52.h,
+                height: 55.h,
                 child: Column(
                   children: [
                     // 아이콘
