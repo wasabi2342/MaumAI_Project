@@ -49,9 +49,9 @@ class LoginScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(height: 50.h), // 상단 여백 추가
+                    SizedBox(height: 100.h), // 상단 여백 추가
                     _buildLogoSection(context),
-                    SizedBox(height: 32.h),
+                    SizedBox(height: 48.h),
                     _buildInputFieldsSection(context),
                     SizedBox(height: 28.h),
                     _buildLoginButton(context),
