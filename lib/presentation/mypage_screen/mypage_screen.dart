@@ -1,15 +1,15 @@
-// 파일 경로: lib/presentation/mypage_screen/mypage_screen.dart
-
 import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
+import '../../services/api_service.dart';
+import '../../models/models.dart'; // UserProfile 모델 사용을 위해 필요
 
 /// 마이페이지 화면
 ///
 /// 기능:
-/// - 프로필 정보 표시 (프로필 사진, 이름, 이메일)
-/// - 프로필 수정 버튼
-/// - 설정 옵션 (푸시 알림, 양액/물교체 알림)
-/// - 로그아웃 버튼
+/// - API를 통해 프로필 정보(이름, 이메일) 로드 및 표시
+/// - 프로필 수정 화면 이동 (갔다 오면 자동 갱신)
+/// - 설정 옵션 (푸시 알림, 양액/물교체 알림 - 현재는 UI만 구현)
+/// - API 로그아웃 연동
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({Key? key}) : super(key: key);
 
@@ -18,8 +18,41 @@ class MyPageScreen extends StatefulWidget {
 }
 
 class _MyPageScreenState extends State<MyPageScreen> {
+  // 사용자 프로필 데이터
+  UserProfile? _userProfile;
+  bool _isLoading = true;
+
+  // 설정 상태 변수
   bool _pushNotification = true;
   bool _nutrientChangeNotification = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // 화면 초기화 시 사용자 정보 불러오기
+    _fetchUserProfile();
+  }
+
+  /// 사용자 프로필 정보 조회 API 호출
+  Future<void> _fetchUserProfile() async {
+    // 로그인된 사용자 ID가 없으면 로딩 종료 (로그인 화면으로 보내야 할 수도 있음)
+    if (ApiService.currentUserId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      final response = await ApiService.getProfile(ApiService.currentUserId!);
+      setState(() {
+        _userProfile = UserProfile.fromJson(response);
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('프로필 로드 실패: $e');
+      setState(() => _isLoading = false);
+      // 에러 발생 시 스낵바 등으로 알림 가능
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +60,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
       backgroundColor: appTheme.green_50,
       appBar: CustomTopAppBar(),
       body: SafeArea(
-        child: Column(
+        child: _isLoading
+            ? Center(child: CircularProgressIndicator(color: appTheme.teal_400))
+            : Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
@@ -52,8 +87,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  /// 프로필 섹션
+  /// 프로필 섹션 (API 데이터 적용)
   Widget _buildProfileSection() {
+    // 데이터가 없으면 기본값 또는 ApiService의 static 변수 사용
+    final nickname = _userProfile?.nickname ?? ApiService.currentUserNickname ?? '사용자';
+    final email = _userProfile?.email ?? ApiService.currentUserEmail ?? '-';
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
@@ -108,7 +147,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
             ),
             child: Row(
               children: [
-                // 프로필 사진
+                // 프로필 사진 (기본 아이콘)
                 Container(
                   width: 90.h,
                   height: 90.h,
@@ -129,7 +168,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '홍길동',
+                        nickname, // API에서 가져온 닉네임
                         style: TextStyle(
                           color: Color(0xFF797979),
                           fontSize: 14.fSize,
@@ -141,7 +180,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       ),
                       SizedBox(height: 19.h),
                       Text(
-                        'hansung1234@gmail.com',
+                        email, // API에서 가져온 이메일
                         style: TextStyle(
                           color: Color(0xFF797979),
                           fontSize: 12.fSize,
@@ -155,10 +194,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       // 프로필 수정 버튼
                       GestureDetector(
                         onTap: () {
+                          // 수정 화면으로 이동하고 돌아왔을 때 데이터 갱신
                           Navigator.pushNamed(
                             context,
                             AppRoutes.profileEditScreen,
-                          );
+                          ).then((_) => _fetchUserProfile());
                         },
                         child: Container(
                           width: 148.w,
@@ -346,7 +386,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Widget _buildLogoutButton() {
     return GestureDetector(
       onTap: () {
-        // TODO: 로그아웃 로직 구현
         _showLogoutDialog();
       },
       child: Container(
@@ -380,29 +419,81 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  /// 로그아웃 확인 다이얼로그
+  /// 로그아웃 확인 다이얼로그 (API 연동)
   void _showLogoutDialog() {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withOpacity(0.4), // 배경 어둡게
       builder: (context) => AlertDialog(
-        title: Text('로그아웃'),
-        content: Text('로그아웃 하시겠습니까?'),
+        backgroundColor: appTheme.white_A700,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.h),
+        ),
+        title: Text(
+          '로그아웃',
+          style: TextStyle(
+            color: appTheme.teal_400,
+            fontSize: 18.fSize,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          '정말 로그아웃 하시겠습니까?',
+          style: TextStyle(
+            color: Color(0xFF797979),
+            fontSize: 14.fSize,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('취소'),
+            child: Text(
+              '취소',
+              style: TextStyle(
+                color: Color(0xFF797979),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              // 다이얼로그 닫기
               Navigator.pop(context);
-              // 로그인 화면으로 이동 (모든 스택 제거)
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppRoutes.loginScreen,
-                    (route) => false,
+
+              // 로딩 표시 (선택 사항)
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => Center(
+                    child: CircularProgressIndicator(color: appTheme.teal_400)),
               );
+
+              try {
+                // API 로그아웃 호출
+                await ApiService.logout();
+              } catch (e) {
+                // 로그아웃 실패해도 로컬에서는 로그아웃 처리
+                print('로그아웃 API 호출 실패: $e');
+              } finally {
+                // 로딩 닫기
+                Navigator.pop(context);
+
+                // 로그인 화면으로 이동 (모든 스택 제거)
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRoutes.loginScreen,
+                      (route) => false,
+                );
+              }
             },
-            child: Text('확인'),
+            child: Text(
+              '확인',
+              style: TextStyle(
+                color: appTheme.teal_400,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
