@@ -5,8 +5,7 @@ import 'dart:async';
 
 /// 베란다 농부 API 서비스
 ///
-/// 백엔드 Spring Boot API와 통신하는 서비스 클래스
-/// 모든 API 엔드포인트를 Flutter 앱에서 사용 가능하도록 래핑
+/// 마스터 계정(1111@naver.com) 사용 시 백엔드 없이 더미 데이터로 동작합니다.
 class ApiService {
   // ============================================
   // 설정
@@ -14,8 +13,6 @@ class ApiService {
 
   /// 서버 베이스 URL
   /// TODO: 실제 서버 주소로 변경 필요
-  /// 에뮬레이터: http://10.0.2.2:8080/api
-  /// 실제 기기: http://192.168.x.x:8080/api (PC의 내부 IP)
   static const String baseUrl = 'http://192.168.0.3:8080/api';
 
   /// 저장된 사용자 정보 (로그인 후)
@@ -25,6 +22,87 @@ class ApiService {
 
   /// HTTP 타임아웃 설정
   static const Duration timeoutDuration = Duration(seconds: 30);
+
+  // ============================================
+  // [MOCK] 더미 데이터 설정 (백엔드 없이 구동용)
+  // ============================================
+  static bool isMockMode = false;
+
+  // 더미 사용자 프로필 데이터
+  static Map<String, dynamic> _mockUserProfile = {
+    'id': 999,
+    'nickname': '마스터농부',
+    'email': '1111@naver.com',
+    'job': '개발자',
+    'age': 25,
+    'gender': '남성',
+  };
+
+  // 더미 식물 리스트 (스크롤 테스트를 위해 데이터 추가됨)
+  static final List<Map<String, dynamic>> _mockAllPlants = [
+    {
+      'id': 1,
+      'name': '로메인 상추',
+      'difficulty': 'EASY',
+      'tempMin': 15.0, 'tempMax': 25.0,
+      'humidityMin': 50.0, 'humidityMax': 70.0,
+      'lightLevel': 'MEDIUM',
+      'ecMin': 1.0, 'ecMax': 2.0,
+      'co2Min': 400.0, 'co2Max': 1000.0,
+    },
+    {
+      'id': 2,
+      'name': '방울토마토',
+      'difficulty': 'MEDIUM',
+      'tempMin': 20.0, 'tempMax': 30.0,
+      'humidityMin': 60.0, 'humidityMax': 80.0,
+      'lightLevel': 'HIGH',
+    },
+    // --- 추가된 더미 데이터 (스크롤 테스트용) ---
+    {
+      'id': 3,
+      'name': '스위트 바질',
+      'difficulty': 'EASY',
+      'tempMin': 20.0, 'tempMax': 25.0,
+      'humidityMin': 60.0, 'humidityMax': 80.0,
+      'lightLevel': 'HIGH',
+    },
+    {
+      'id': 4,
+      'name': '청양고추',
+      'difficulty': 'MEDIUM',
+      'tempMin': 25.0, 'tempMax': 30.0,
+      'humidityMin': 60.0, 'humidityMax': 70.0,
+      'lightLevel': 'HIGH',
+    },
+    {
+      'id': 5,
+      'name': '애플민트',
+      'difficulty': 'EASY',
+      'tempMin': 15.0, 'tempMax': 25.0,
+      'humidityMin': 70.0, 'humidityMax': 90.0,
+      'lightLevel': 'MEDIUM',
+    },
+    {
+      'id': 6,
+      'name': '설향 딸기',
+      'difficulty': 'HARD',
+      'tempMin': 17.0, 'tempMax': 23.0,
+      'humidityMin': 50.0, 'humidityMax': 60.0,
+      'lightLevel': 'HIGH',
+    },
+  ];
+
+  // 더미 내 식물 리스트
+  static List<Map<String, dynamic>> _mockUserPlants = [
+    {
+      'id': 101,
+      'plantId': 1,
+      'plantName': '로메인 상추',
+      'nickname': '초록이',
+      'startedAt': DateTime.now().subtract(Duration(days: 5)).toIso8601String(),
+    }
+  ];
 
   // ============================================
   // 1. 사용자 관련 API (UserController)
@@ -81,6 +159,21 @@ class ApiService {
     required String email,
     required String password,
   }) async {
+    // [MOCK] 마스터 계정 체크
+    if (email == '1111@naver.com' && password == '111111') {
+      isMockMode = true;
+      // 초기화
+      currentUserId = _mockUserProfile['id'];
+      currentUserEmail = _mockUserProfile['email'];
+      currentUserNickname = _mockUserProfile['nickname'];
+
+      // 가짜 네트워크 딜레이
+      await Future.delayed(Duration(seconds: 1));
+
+      print("::: Mock Mode Activated (Master Account) :::");
+      return _mockUserProfile;
+    }
+
     try {
       final response = await http
           .post(
@@ -95,6 +188,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
+        isMockMode = false; // 실제 로그인이면 Mock 모드 해제
         currentUserId = data['id'];
         currentUserEmail = data['email'];
         currentUserNickname = data['nickname'];
@@ -116,12 +210,19 @@ class ApiService {
 
   /// 로그아웃
   static Future<void> logout() async {
-    try {
-      await http.post(Uri.parse('$baseUrl/users/logout')).timeout(timeoutDuration);
+    if (isMockMode) {
+      isMockMode = false;
       currentUserId = null;
       currentUserEmail = null;
       currentUserNickname = null;
+      return;
+    }
+
+    try {
+      await http.post(Uri.parse('$baseUrl/users/logout')).timeout(timeoutDuration);
     } catch (e) {
+      // ignore error on logout
+    } finally {
       currentUserId = null;
       currentUserEmail = null;
       currentUserNickname = null;
@@ -130,6 +231,11 @@ class ApiService {
 
   /// 프로필 조회
   static Future<Map<String, dynamic>> getProfile(int userId) async {
+    if (isMockMode) {
+      await Future.delayed(Duration(milliseconds: 500));
+      return _mockUserProfile;
+    }
+
     try {
       final response = await http
           .get(Uri.parse('$baseUrl/users/$userId'))
@@ -153,6 +259,20 @@ class ApiService {
     int? age,
     String? gender,
   }) async {
+    if (isMockMode) {
+      await Future.delayed(Duration(seconds: 1));
+      // 더미 데이터 업데이트
+      if (nickname != null) _mockUserProfile['nickname'] = nickname;
+      if (job != null) _mockUserProfile['job'] = job;
+      if (age != null) _mockUserProfile['age'] = age;
+      if (gender != null) _mockUserProfile['gender'] = gender;
+
+      // 전역 변수 업데이트
+      if (nickname != null) currentUserNickname = nickname;
+
+      return _mockUserProfile;
+    }
+
     try {
       final requestBody = <String, dynamic>{};
       if (nickname != null) requestBody['nickname'] = nickname;
@@ -187,6 +307,15 @@ class ApiService {
     required String newPassword,
     required String newPasswordConfirm,
   }) async {
+    if (isMockMode) {
+      await Future.delayed(Duration(seconds: 1));
+      // 마스터 계정 비밀번호 확인
+      if (currentPassword != '111111') {
+        throw Exception('현재 비밀번호가 올바르지 않습니다.');
+      }
+      return;
+    }
+
     try {
       final response = await http
           .put(
@@ -211,6 +340,15 @@ class ApiService {
 
   /// 회원탈퇴
   static Future<void> deleteUser(int userId) async {
+    if (isMockMode) {
+      await Future.delayed(Duration(milliseconds: 500));
+      currentUserId = null;
+      currentUserEmail = null;
+      currentUserNickname = null;
+      isMockMode = false;
+      return;
+    }
+
     try {
       final response = await http
           .delete(Uri.parse('$baseUrl/users/$userId'))
@@ -234,6 +372,10 @@ class ApiService {
 
   /// 전체 식물 리스트 조회
   static Future<List<dynamic>> getAllPlants() async {
+    if (isMockMode) {
+      return _mockAllPlants;
+    }
+
     try {
       final response = await http
           .get(Uri.parse('$baseUrl/plants'))
@@ -251,6 +393,13 @@ class ApiService {
 
   /// 식물 상세 정보 조회
   static Future<Map<String, dynamic>> getPlantDetail(int plantId) async {
+    if (isMockMode) {
+      return _mockAllPlants.firstWhere(
+            (element) => element['id'] == plantId,
+        orElse: () => _mockAllPlants[0],
+      );
+    }
+
     try {
       final response = await http
           .get(Uri.parse('$baseUrl/plants/$plantId'))
@@ -270,9 +419,12 @@ class ApiService {
   // 3. 사용자 식물 관련 API (UserPlantController)
   // ============================================
 
-  /// [추가됨] 사용자 식물 목록 조회
-  /// 홈 화면 등에서 로그인한 사용자의 식물을 불러올 때 사용
+  /// 사용자 식물 목록 조회
   static Future<List<dynamic>> getUserPlants(int userId) async {
+    if (isMockMode) {
+      return _mockUserPlants;
+    }
+
     try {
       final response = await http
           .get(Uri.parse('$baseUrl/user-plants?userId=$userId'))
@@ -297,6 +449,20 @@ class ApiService {
     DateTime? startedAt,
     int? deviceId,
   }) async {
+    if (isMockMode) {
+      await Future.delayed(Duration(seconds: 1));
+      // 더미 데이터 추가
+      Map<String, dynamic> newPlant = {
+        'id': _mockUserPlants.length + 100,
+        'plantId': plantId,
+        'plantName': _mockAllPlants.firstWhere((e) => e['id'] == plantId, orElse: () => {'name': '알 수 없음'})['name'],
+        'nickname': nickname,
+        'startedAt': (startedAt ?? DateTime.now()).toIso8601String(),
+      };
+      _mockUserPlants.add(newPlant);
+      return newPlant;
+    }
+
     try {
       final requestBody = <String, dynamic>{
         'plantId': plantId,
@@ -338,6 +504,19 @@ class ApiService {
     required int year,
     required int month,
   }) async {
+    if (isMockMode) {
+      // 더미 다이어리 데이터
+      return {
+        'userPlantId': userPlantId,
+        'plantName': '로메인 상추',
+        'daysSincePlanted': 5,
+        'photoCount': 0,
+        'year': year,
+        'month': month,
+        'days': [],
+      };
+    }
+
     try {
       final response = await http
           .get(
@@ -360,6 +539,8 @@ class ApiService {
     required int userPlantId,
     required DateTime date,
   }) async {
+    if (isMockMode) throw Exception('작성된 다이어리가 없습니다.');
+
     try {
       final dateStr = date.toIso8601String().split('T')[0];
       final response = await http
@@ -387,6 +568,11 @@ class ApiService {
     String? content,
     String? imagePath,
   }) async {
+    if (isMockMode) {
+      await Future.delayed(Duration(seconds: 1));
+      return {};
+    }
+
     try {
       var request = http.MultipartRequest(
         'POST',
@@ -430,6 +616,11 @@ class ApiService {
     String? content,
     String? imagePath,
   }) async {
+    if (isMockMode) {
+      await Future.delayed(Duration(seconds: 1));
+      return {};
+    }
+
     try {
       var request = http.MultipartRequest(
         'PUT',
@@ -464,6 +655,8 @@ class ApiService {
 
   /// 다이어리 삭제
   static Future<void> deleteDiary(int diaryId) async {
+    if (isMockMode) return;
+
     try {
       final response = await http
           .delete(Uri.parse('$baseUrl/diary/$diaryId'))
@@ -479,6 +672,8 @@ class ApiService {
 
   /// 타임라인 조회
   static Future<Map<String, dynamic>> getTimeline(int userPlantId) async {
+    if (isMockMode) return {'items': []};
+
     try {
       final response = await http
           .get(
@@ -508,10 +703,12 @@ class ApiService {
     currentUserId = null;
     currentUserEmail = null;
     currentUserNickname = null;
+    isMockMode = false;
   }
 
   /// 서버 연결 테스트
   static Future<bool> testConnection() async {
+    if (isMockMode) return true;
     try {
       final response = await http
           .get(Uri.parse(baseUrl.replaceAll('/api', '')))

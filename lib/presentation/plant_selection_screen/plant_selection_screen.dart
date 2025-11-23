@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'dart:convert'; // JSON 처리를 위해 필요
+import 'dart:convert';
 
-// 프로젝트 구조에 맞춰 경로를 확인해주세요.
 import '../../core/app_export.dart';
 import '../../widgets/custom_top_tab.dart';
-import '../../widgets/custom_top_app_bar.dart';
+// import '../../widgets/custom_top_app_bar.dart'; // SliverAppBar 직접 구현으로 제거
 import '../../widgets/custom_bottom_nav_bar.dart';
-import '../../services/api_service.dart'; // ApiService 위치
-import '../../models/models.dart'; // PlantInfo 모델 위치
+import '../../widgets/notification_sidebar.dart'; // 알림 사이드바 추가
+import '../../services/api_service.dart';
+import '../../models/models.dart';
 
 /// PlantSelectionScreen - 재배할 식물 선택 화면
 ///
-/// 기능:
-/// - 서버 API로부터 재배 가능한 식물 목록 표시
-/// - 각 식물의 이미지, 이름, 난이도 표시
-/// - 식물 선택 버튼 -> 홈 화면으로 데이터 전달
+/// 수정 사항:
+/// - CustomScrollView + SliverAppBar 적용 (스크롤 시 상단 앱바 숨김 처리)
 class PlantSelectionScreen extends StatefulWidget {
   const PlantSelectionScreen({Key? key}) : super(key: key);
 
@@ -37,25 +35,44 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
   Future<List<PlantInfo>> _fetchPlants() async {
     try {
       final List<dynamic> data = await ApiService.getAllPlants();
-      // JSON 데이터를 PlantInfo 모델 리스트로 변환
       return data.map((json) => PlantInfo.fromJson(json)).toList();
     } catch (e) {
       print('식물 목록 로드 실패: $e');
-      return []; // 에러 시 빈 리스트 반환
+      return [];
     }
   }
 
-  /// 식물 이름에 따른 이미지 매핑 (API에 이미지 URL이 없을 경우를 대비한 로직)
-  String _getPlantImage(String plantName) {
-    if (plantName.contains('상추')) return 'assets/images/plant_lettuce.png';
-    if (plantName.contains('토마토')) return 'assets/images/plant_tomato.png'; // 예시
-    if (plantName.contains('바질')) return 'assets/images/plant_basil.png'; // 예시
-    // 기본 이미지
-    return 'assets/images/plant_lettuce.png';
+  /// 알림 사이드바 표시 (CustomTopAppBar 기능을 직접 구현)
+  void _showNotificationSidebar(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Color(0x3FD9D9D9),
+      transitionDuration: Duration(milliseconds: 300),
+      pageBuilder: (BuildContext buildContext, Animation animation,
+          Animation secondaryAnimation) {
+        return NotificationSidebar(
+          onClose: () {
+            Navigator.of(context).pop();
+          },
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOut;
+        var tween =
+        Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        );
+      },
+    );
   }
 
   void _selectPlant(PlantInfo plant) {
-    // 식물 선택 확인 다이얼로그
     showDialog(
       context: context,
       barrierColor: Colors.white.withOpacity(0.3),
@@ -102,7 +119,6 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
               onPressed: () async {
                 if (ApiService.currentUserId != null) {
                   try {
-                    // 로딩 표시
                     showDialog(
                       context: context,
                       barrierDismissible: false,
@@ -111,19 +127,17 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
                       ),
                     );
 
-                    // 서버에 내 식물로 등록 (deviceId: 1 추가)
                     await ApiService.createUserPlant(
                       userId: ApiService.currentUserId!,
                       plantId: plant.id,
                       nickname: plant.name,
                       startedAt: DateTime.now(),
-                      deviceId: 1, // [수정] deviceId를 1로 고정하여 전달
+                      deviceId: 1,
                     );
 
                     Navigator.pop(context); // 로딩 닫기
                     Navigator.of(context).pop(); // 다이얼로그 닫기
 
-                    // 홈 화면으로 이동
                     Navigator.pushReplacementNamed(
                       context,
                       AppRoutes.homeScreen,
@@ -158,42 +172,103 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appTheme.green_50,
-      appBar: CustomTopAppBar(),
+      // appBar 제거 (SliverAppBar 사용)
       body: SafeArea(
-        child: Column(
-          children: [
-            CustomTopTab(text: '재배할 식물 선택'),
-            Expanded(
-              // FutureBuilder로 데이터 로딩 상태 처리
-              child: FutureBuilder<List<PlantInfo>>(
-                future: _plantListFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text("데이터를 불러오는데 실패했습니다."));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text("등록된 식물이 없습니다."));
-                  }
+        child: FutureBuilder<List<PlantInfo>>(
+          future: _plantListFuture,
+          builder: (context, snapshot) {
+            // 1. 로딩 중
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator(color: appTheme.teal_400));
+            }
+            // 2. 에러 발생
+            else if (snapshot.hasError) {
+              return Center(child: Text("데이터를 불러오는데 실패했습니다."));
+            }
 
-                  final plants = snapshot.data!;
+            final plants = snapshot.data ?? [];
 
-                  return ListView.builder(
+            // 3. 데이터 로드 완료 -> CustomScrollView 반환
+            return CustomScrollView(
+              slivers: [
+                // [1] 스크롤 시 사라지는 상단 앱바
+                SliverAppBar(
+                  floating: true,
+                  snap: true,
+                  pinned: false, // 스크롤 시 완전히 사라짐 (DiagnosisScreen과 동일)
+                  elevation: 0,
+                  backgroundColor: appTheme.green_50,
+                  automaticallyImplyLeading: false,
+                  title: CustomImageView(
+                    imagePath: ImageConstant.img,
+                    height: 28.h,
+                    fit: BoxFit.contain,
+                  ),
+                  centerTitle: true,
+                  actions: [
+                    IconButton(
+                      onPressed: () => _showNotificationSidebar(context),
+                      icon: Icon(
+                        Icons.notifications_none_outlined,
+                        color: appTheme.blue_gray_700,
+                        size: 28.h,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pushNamed(context, AppRoutes.myPageScreen),
+                      icon: Icon(
+                        Icons.person_outline,
+                        color: appTheme.blue_gray_700,
+                        size: 28.h,
+                      ),
+                    ),
+                    SizedBox(width: 16.h),
+                  ],
+                ),
+
+                // [2] 탭 제목 (SliverToBoxAdapter 사용)
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      CustomTopTab(text: '재배할 식물 선택'),
+                      // 식물이 없을 경우 처리
+                      if (plants.isEmpty)
+                        Container(
+                          height: 400.h,
+                          alignment: Alignment.center,
+                          child: Text(
+                            "등록된 식물이 없습니다.",
+                            style: TextStyle(
+                              color: appTheme.gray_800,
+                              fontSize: 16.fSize,
+                              fontFamily: 'Pretendard',
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // [3] 식물 목록 리스트 (SliverList 사용)
+                if (plants.isNotEmpty)
+                  SliverPadding(
                     padding: EdgeInsets.only(top: 16.h, bottom: 20.h),
-                    itemCount: plants.length,
-                    itemBuilder: (context, index) {
-                      return _buildPlantCard(plants[index]);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                          return _buildPlantCard(plants[index]);
+                        },
+                        childCount: plants.length,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: CustomBottomNavBar(
@@ -202,22 +277,17 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
     );
   }
 
-  /// 식물 카드 위젯
+  /// 식물 카드 위젯 (기존 유지)
   Widget _buildPlantCard(PlantInfo plant) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h, left: 16.w, right: 16.w), // 좌우 여백 추가
+      margin: EdgeInsets.only(bottom: 16.h, left: 16.w, right: 16.w),
       height: 136.h,
       decoration: BoxDecoration(
         color: appTheme.white_A700,
-        borderRadius: BorderRadius.only(
-          topRight: Radius.circular(20.h),
-          bottomRight: Radius.circular(20.h),
-          topLeft: Radius.circular(20.h), // 전체 둥근 모서리를 위해 추가
-          bottomLeft: Radius.circular(20.h),
-        ),
+        borderRadius: BorderRadius.circular(20.h),
         boxShadow: [
           BoxShadow(
-            color: appTheme.color66D3D3 ?? Color(0xFF66D3D3),
+            color: appTheme.color66D3D3,
             blurRadius: 8.h,
             offset: Offset(0, 0),
           ),
@@ -236,8 +306,6 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                // 로컬 이미지 에셋을 사용하거나 아이콘으로 대체
-                // 예시: Image.asset(_getPlantImage(plant.name))
                 child: Icon(
                   Icons.eco,
                   size: 40.h,
@@ -264,7 +332,7 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
                   ),
                   SizedBox(height: 5.h),
                   Text(
-                    '재배 난이도 : ${plant.difficultyKorean}', // 한글 난이도
+                    '재배 난이도 : ${plant.difficultyKorean}',
                     style: TextStyle(
                       color: Color(0xFF797979),
                       fontSize: 14.fSize,

@@ -7,9 +7,9 @@ import '../core/app_export.dart';
 ///
 /// 기능:
 /// - 우측에서 슬라이드되어 나타남
-/// - 알림 목록 표시
+/// - 알림 목록 표시 (삭제 기능 포함)
 /// - 각 알림은 아이콘, 날짜, 메시지, 삭제 버튼 포함
-class NotificationSidebar extends StatelessWidget {
+class NotificationSidebar extends StatefulWidget {
   final VoidCallback onClose;
 
   const NotificationSidebar({
@@ -18,15 +18,33 @@ class NotificationSidebar extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<NotificationSidebar> createState() => _NotificationSidebarState();
+}
+
+class _NotificationSidebarState extends State<NotificationSidebar> {
+  // [수정] 상태로 관리되는 더미 알림 데이터
+  List<NotificationItem> notifications = [
+    NotificationItem(
+      date: '2025. 10 / 27',
+      message: '온도가 정상 범위보다 높아요',
+      iconType: NotificationIconType.temperature,
+    ),
+    NotificationItem(
+      date: '2025. 10 / 25',
+      message: '양액 교체 시기 입니다.',
+      iconType: NotificationIconType.nutrient,
+    ),
+  ];
+
+  @override
   Widget build(BuildContext context) {
     // 정확한 높이 값 사용
     final topPadding = MediaQuery.of(context).padding.top;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
     final appBarHeight = 56.h; // CustomTopAppBar의 preferredSize
     final bottomNavHeight = 70.h; // CustomBottomNavBar의 높이
 
     return GestureDetector(
-      onTap: onClose,
+      onTap: widget.onClose,
       child: Container(
         color: Colors.transparent,
         child: Stack(
@@ -63,7 +81,7 @@ class NotificationSidebar extends StatelessWidget {
     );
   }
 
-  /// 헤더 (알림 타이틀) - custom_top_tab과 동일한 그라데이션
+  /// 헤더 (알림 타이틀)
   Widget _buildHeader() {
     return Container(
       width: 185.h,
@@ -105,21 +123,20 @@ class NotificationSidebar extends StatelessWidget {
     );
   }
 
-  /// 알림 목록
+  /// 알림 목록 빌더
   Widget _buildNotificationList() {
-    // 임시 알림 데이터
-    final notifications = [
-      NotificationItem(
-        date: '2025. 10 / 27',
-        message: '온도가 정상 범위보다 높아요',
-        iconType: NotificationIconType.temperature,
-      ),
-      NotificationItem(
-        date: '2025. 10 / 25',
-        message: '양액 교체 시기 입니다.',
-        iconType: NotificationIconType.nutrient,
-      ),
-    ];
+    if (notifications.isEmpty) {
+      return Center(
+        child: Text(
+          '새로운 알림이 없습니다.',
+          style: TextStyle(
+            color: appTheme.blue_gray_100,
+            fontSize: 14.fSize,
+            fontFamily: 'Pretendard',
+          ),
+        ),
+      );
+    }
 
     return ListView.builder(
       padding: EdgeInsets.only(
@@ -127,13 +144,14 @@ class NotificationSidebar extends StatelessWidget {
       ),
       itemCount: notifications.length,
       itemBuilder: (context, index) {
-        return _buildNotificationCard(notifications[index]);
+        // index를 전달하여 어떤 항목을 삭제할지 식별
+        return _buildNotificationCard(notifications[index], index);
       },
     );
   }
 
   /// 알림 카드
-  Widget _buildNotificationCard(NotificationItem notification) {
+  Widget _buildNotificationCard(NotificationItem notification, int index) {
     return Container(
       margin: EdgeInsets.only(bottom: 21.h),
       height: 82.h,
@@ -202,11 +220,24 @@ class NotificationSidebar extends StatelessWidget {
             // 오른쪽: 삭제 버튼
             GestureDetector(
               onTap: () {
-                // 삭제 기능 구현
+                // [수정] 삭제 로직 구현
+                setState(() {
+                  notifications.removeAt(index);
+                });
+
+                // (선택사항) 삭제 안내 스낵바 표시
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('알림이 삭제되었습니다.'),
+                    duration: Duration(seconds: 1),
+                    backgroundColor: appTheme.teal_400,
+                  ),
+                );
               },
               child: Container(
                 width: 24.h,
                 height: 24.h,
+                color: Colors.transparent, // 터치 영역 확보
                 child: Icon(
                   Icons.delete_outline,
                   size: 24.h,

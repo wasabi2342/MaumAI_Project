@@ -243,6 +243,8 @@ class LoginScreen extends StatelessWidget {
 
   /// 이메일 유효성 검사
   String? _validateEmail(String? value) {
+    // 마스터 계정 테스트를 위해 단순 비어있는지만 체크할 수도 있음
+    // 하지만 형식 유지를 위해 놔둠
     if (value?.isEmpty ?? true) {
       return '이메일을 입력해주세요';
     }
@@ -269,25 +271,9 @@ class LoginScreen extends StatelessWidget {
     return null;
   }
 
-  /// 로그인 버튼 클릭 이벤트 (API 연동 적용)
+  /// 로그인 버튼 클릭 이벤트 (수정됨)
   void _onLoginPressed(BuildContext context) async {
-    // 1. 마스터 계정 체크 (테스트용)
-    if (emailController.text == '1111@naver.com' &&
-        passwordController.text == '111111') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('마스터 계정으로 로그인합니다.'),
-          backgroundColor: appTheme.teal_400,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      // 홈 화면으로 이동하면서 이전 스택 제거
-      Navigator.pushNamedAndRemoveUntil(
-          context, AppRoutes.homeScreen, (route) => false);
-      return;
-    }
-
-    // 2. 폼 유효성 검사 및 API 호출
+    // 폼 유효성 검사
     if (_formKey.currentState?.validate() ?? false) {
       // 로딩 표시
       showDialog(
@@ -301,7 +287,8 @@ class LoginScreen extends StatelessWidget {
       );
 
       try {
-        // 실제 API 호출
+        // ApiService.login 호출
+        // (내부에서 1111@naver.com 체크 후 Mock 데이터 반환)
         final result = await ApiService.login(
           email: emailController.text.trim(),
           password: passwordController.text,
@@ -309,8 +296,6 @@ class LoginScreen extends StatelessWidget {
 
         // 응답 데이터를 UserProfile 모델로 변환
         final userProfile = UserProfile.fromJson(result);
-
-        print('로그인 성공: ${userProfile.nickname} (ID: ${userProfile.id})');
 
         // 로딩 다이얼로그 닫기
         Navigator.of(context).pop();
@@ -324,7 +309,7 @@ class LoginScreen extends StatelessWidget {
           ),
         );
 
-        // 3. 홈 화면으로 이동 (뒤로가기 방지를 위해 pushNamedAndRemoveUntil 사용)
+        // 홈 화면으로 이동 (뒤로가기 방지를 위해 pushNamedAndRemoveUntil 사용)
         Navigator.pushNamedAndRemoveUntil(
             context, AppRoutes.homeScreen, (route) => false);
 
@@ -346,7 +331,6 @@ class LoginScreen extends StatelessWidget {
           errorMessage = '서버 응답 시간이 초과되었습니다.';
         } else {
           errorMessage = '로그인에 실패했습니다.\n잠시 후 다시 시도해주세요.';
-          print("상세 에러: $errorStr"); // 디버깅용
         }
 
         // 에러 메시지 표시
@@ -374,7 +358,7 @@ class LoginScreen extends StatelessWidget {
       ),
     );
 
-    // 카카오 로그인 프로세스 시뮬레이션 (추후 실제 구현 필요)
+    // 카카오 로그인 프로세스 시뮬레이션
     Future.delayed(Duration(seconds: 2), () {
       Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
 
@@ -402,7 +386,7 @@ class LoginScreen extends StatelessWidget {
       ),
     );
 
-    // 구글 로그인 프로세스 시뮬레이션 (추후 실제 구현 필요)
+    // 구글 로그인 프로세스 시뮬레이션
     Future.delayed(Duration(seconds: 2), () {
       Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
 
