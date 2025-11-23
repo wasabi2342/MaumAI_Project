@@ -229,7 +229,21 @@ class _MyPageScreenState extends State<MyPageScreen> {
                           Navigator.pushNamed(
                             context,
                             AppRoutes.profileEditScreen,
-                          ).then((_) => _fetchUserProfile());
+                          ).then((result) {
+                            // result가 true이면(저장 성공 시) 마이페이지에서 스낵바를 띄웁니다.
+                            if (result == true) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('성공적으로 저장되었습니다.'),
+                                  backgroundColor: appTheme.teal_400,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                            // 프로필 정보 갱신
+                            _fetchUserProfile();
+                          });
                         },
                         child: Container(
                           width: 148.w,

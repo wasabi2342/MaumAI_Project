@@ -117,17 +117,8 @@ class _ProfileEditScreenWithAPIState extends State<ProfileEditScreenWithAPI> {
       }
 
       // [성공 시 처리]
-      // 성공 메시지 표시
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('성공적으로 저장되었습니다.'),
-          backgroundColor: appTheme.teal_400,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      // 마이페이지로 이동 (뒤로가기)
-      Navigator.pop(context);
+      // 성공 신호(true)를 반환하며 이전 화면으로 이동
+      Navigator.pop(context, true);
 
     } catch (e) {
       // [실패 시 처리]
