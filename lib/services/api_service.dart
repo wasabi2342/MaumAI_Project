@@ -11,9 +11,13 @@ class ApiService {
   // 설정
   // ============================================
 
-  /// 서버 베이스 URL
-  /// TODO: 실제 서버 주소로 변경 필요
-  static const String baseUrl = 'http://192.168.0.3:8080/api';
+  /// 서버 베이스 URL 설정
+  ///
+  /// [중요] 실행 환경에 따라 주소를 변경하세요.
+  /// 1. 안드로이드 에뮬레이터: 'http://10.0.2.2:8080/api'
+  /// 2. iOS 시뮬레이터: 'http://localhost:8080/api'
+  /// 3. 실제 기기(폰): PC의 IP 주소 (예: 'http://192.168.0.X:8080/api')
+  static const String baseUrl = 'http://10.0.2.2:8080/api';
 
   /// 저장된 사용자 정보 (로그인 후)
   static int? currentUserId;
@@ -24,7 +28,7 @@ class ApiService {
   static const Duration timeoutDuration = Duration(seconds: 30);
 
   // ============================================
-  // [MOCK] 더미 데이터 설정 (백엔드 없이 구동용)
+  // [MOCK] 더미 데이터 설정 (백엔드 연결 시 false)
   // ============================================
   static bool isMockMode = false;
 
@@ -38,7 +42,7 @@ class ApiService {
     'gender': '남성',
   };
 
-  // 더미 식물 리스트 (스크롤 테스트를 위해 데이터 추가됨)
+  // 더미 식물 리스트
   static final List<Map<String, dynamic>> _mockAllPlants = [
     {
       'id': 1,
@@ -58,7 +62,6 @@ class ApiService {
       'humidityMin': 60.0, 'humidityMax': 80.0,
       'lightLevel': 'HIGH',
     },
-    // --- 추가된 더미 데이터 (스크롤 테스트용) ---
     {
       'id': 3,
       'name': '스위트 바질',
@@ -162,14 +165,11 @@ class ApiService {
     // [MOCK] 마스터 계정 체크
     if (email == '1111@naver.com' && password == '111111') {
       isMockMode = true;
-      // 초기화
       currentUserId = _mockUserProfile['id'];
       currentUserEmail = _mockUserProfile['email'];
       currentUserNickname = _mockUserProfile['nickname'];
 
-      // 가짜 네트워크 딜레이
       await Future.delayed(Duration(seconds: 1));
-
       print("::: Mock Mode Activated (Master Account) :::");
       return _mockUserProfile;
     }
@@ -188,7 +188,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-        isMockMode = false; // 실제 로그인이면 Mock 모드 해제
+        isMockMode = false;
         currentUserId = data['id'];
         currentUserEmail = data['email'];
         currentUserNickname = data['nickname'];
@@ -261,15 +261,12 @@ class ApiService {
   }) async {
     if (isMockMode) {
       await Future.delayed(Duration(seconds: 1));
-      // 더미 데이터 업데이트
       if (nickname != null) _mockUserProfile['nickname'] = nickname;
       if (job != null) _mockUserProfile['job'] = job;
       if (age != null) _mockUserProfile['age'] = age;
       if (gender != null) _mockUserProfile['gender'] = gender;
 
-      // 전역 변수 업데이트
       if (nickname != null) currentUserNickname = nickname;
-
       return _mockUserProfile;
     }
 
@@ -309,7 +306,6 @@ class ApiService {
   }) async {
     if (isMockMode) {
       await Future.delayed(Duration(seconds: 1));
-      // 마스터 계정 비밀번호 확인
       if (currentPassword != '111111') {
         throw Exception('현재 비밀번호가 올바르지 않습니다.');
       }
@@ -433,7 +429,7 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
-        return []; // 실패하거나 식물이 없으면 빈 리스트 반환
+        return [];
       }
     } catch (e) {
       print('사용자 식물 목록 조회 실패: $e');
@@ -442,16 +438,15 @@ class ApiService {
   }
 
   /// 내 식물 등록
+  /// [수정] 백엔드 DTO 변경으로 deviceId 파라미터가 제거되었습니다.
   static Future<Map<String, dynamic>> createUserPlant({
     required int userId,
     required int plantId,
     String? nickname,
     DateTime? startedAt,
-    int? deviceId,
   }) async {
     if (isMockMode) {
       await Future.delayed(Duration(seconds: 1));
-      // 더미 데이터 추가
       Map<String, dynamic> newPlant = {
         'id': _mockUserPlants.length + 100,
         'plantId': plantId,
@@ -472,9 +467,9 @@ class ApiService {
       if (startedAt != null) {
         requestBody['startedAt'] = startedAt.toIso8601String().split('T')[0];
       }
-      if (deviceId != null) {
-        requestBody['deviceId'] = deviceId;
-      }
+
+      // deviceId는 백엔드 요청에서 제외됨
+
       final response = await http
           .post(
         Uri.parse('$baseUrl/user-plants?userId=$userId'),
@@ -505,7 +500,6 @@ class ApiService {
     required int month,
   }) async {
     if (isMockMode) {
-      // 더미 다이어리 데이터
       return {
         'userPlantId': userPlantId,
         'plantName': '로메인 상추',
@@ -579,12 +573,14 @@ class ApiService {
         Uri.parse('$baseUrl/diary'),
       );
 
+      // 백엔드 @RequestParam 대응
       request.fields['userPlantId'] = userPlantId.toString();
       request.fields['diaryDate'] = diaryDate.toIso8601String().split('T')[0];
       if (content != null && content.isNotEmpty) {
         request.fields['content'] = content;
       }
 
+      // 백엔드 @RequestPart 대응 (파일)
       if (imagePath != null && imagePath.isNotEmpty) {
         final file = File(imagePath);
         if (await file.exists()) {

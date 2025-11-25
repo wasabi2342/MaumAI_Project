@@ -132,7 +132,6 @@ class _PlantSelectionScreenState extends State<PlantSelectionScreen> {
                       plantId: plant.id,
                       nickname: plant.name,
                       startedAt: DateTime.now(),
-                      deviceId: 1,
                     );
 
                     Navigator.pop(context); // 로딩 닫기
