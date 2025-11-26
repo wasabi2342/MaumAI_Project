@@ -13,7 +13,7 @@ class ApiService {
 
   /// 서버 베이스 URL 설정
   /// [중요] 실행 환경에 따라 주소를 변경하세요.
-  static const String baseUrl = 'http://223.194.132.61:8080/api';
+  static const String baseUrl = 'http://192.168.0.3:8080/api';
 
   /// 저장된 사용자 정보 (로그인 후)
   static int? currentUserId;
