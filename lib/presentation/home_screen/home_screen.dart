@@ -443,14 +443,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 2. 왼쪽 식물 이미지
+                // 2. 왼쪽 식물 이미지 (흰색 배경 박스 추가)
                 Positioned(
                   left: 16.h,
                   top: 20.h,
                   child: Container(
                     width: 150.h,
                     height: 111.h,
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.h)),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFFDFEFB), // 흰색 배경
+                      borderRadius: BorderRadius.circular(20.h),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x66D3D3D3),
+                          blurRadius: 8.h,
+                          offset: Offset(0, 4.h),
+                        ),
+                      ],
+                    ),
                     child: Center(
                       child: Opacity(
                         opacity: 0.60,
@@ -460,13 +470,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 3. 기기 정보
+                // 3. 기기 정보 (흰색 배경 박스 추가)
                 Positioned(
                   left: 182.h,
                   top: 20.h,
                   child: Container(
                     width: 195.h,
                     height: 82.h,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFFDFEFB), // 흰색 배경
+                      borderRadius: BorderRadius.circular(20.h),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x66D3D3D3),
+                          blurRadius: 8.h,
+                          offset: Offset(0, 4.h),
+                        ),
+                      ],
+                    ),
                     child: Stack(
                       children: [
                         Positioned(
@@ -495,7 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         Positioned(
                           left: 75.h,
-                          top: 49.h,
+                          top: 42.h,
                           child: Container(
                             padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 4.h),
                             decoration: BoxDecoration(
@@ -515,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         Positioned(
                           left: 12.h,
-                          top: 54.h,
+                          top: 47.h,
                           child: Text(
                             '현재 재배중',
                             style: TextStyle(
@@ -610,7 +631,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 8. Co2 카드 [수정] 높이 증가 (75 -> 95)
+                // 8. Co2 카드
                 Positioned(
                   left: 16.h,
                   top: 342.h,
@@ -626,7 +647,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 9. EC 카드 [수정] 높이 증가 (75 -> 95)
+                // 9. EC 카드
                 Positioned(
                   left: 201.h,
                   top: 342.h,
@@ -642,10 +663,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 10. 24시간 추이 그래프 [수정] top 위치 조정 (429 -> 455)
+                // 10. 24시간 추이 그래프
                 Positioned(
                   left: 16.h,
-                  top: 455.h, // 카드가 길어진 만큼 아래로 내림
+                  top: 455.h,
                   child: Container(
                     width: 361.h,
                     height: 220.h,
