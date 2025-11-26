@@ -1,3 +1,4 @@
+import 'dart:async'; // [추가] 타이머 사용을 위해 필요
 import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -186,79 +187,93 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
+  /// [수정됨] 타임랩스 화면으로 이동 (실제 플레이어 팝업 띄우기)
   void _goToTimelapse() async {
+    // 로딩 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
+    );
+
     try {
+      // 1. 타임라인 데이터 가져오기
       final timelineData = await ApiService.getTimeline(_userPlantId);
       final timeline = DiaryTimeline.fromJson(timelineData);
+
+      Navigator.pop(context); // 로딩 종료
 
       if (timeline.items.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('타임랩스를 생성할 사진이 충분하지 않습니다.'),
+            content: Text('타임랩스를 생성할 사진이 없습니다.'),
             backgroundColor: appTheme.teal_400,
           ),
         );
         return;
       }
 
+      // 2. 재생할 프레임 데이터 가공 (URL 및 날짜)
+      List<Map<String, String>> frames = [];
+
+      // ApiService의 baseUrl에서 /api 제거 (이미지 경로용)
+      String baseUrl = ApiService.baseUrl;
+      if (baseUrl.endsWith('/api')) {
+        baseUrl = baseUrl.substring(0, baseUrl.length - 4);
+      }
+
+      for (var item in timeline.items) {
+        if (item.imageUrl == null || item.imageUrl!.isEmpty) continue;
+
+        // 이미지 전체 URL 만들기
+        String path = item.imageUrl!;
+        if (!path.startsWith('http') && !path.startsWith('assets/') && !path.startsWith('file')) {
+          // 상대 경로인 경우 슬래시 처리 및 호스트 주소 결합
+          if (!path.startsWith('/')) path = '/$path';
+          path = '$baseUrl$path';
+        }
+
+        // 날짜 포맷팅 (YYYY-MM-DD)
+        String dateStr = '';
+        try {
+          // item.diaryDate가 DateTime인지 String인지 확인 후 처리
+          // (모델 정의에 따라 다르지만 보통 API 응답은 String일 수 있음)
+          // 여기서는 동적으로 처리
+          if (item.diaryDate is DateTime) {
+            dateStr = DateFormat('yyyy.MM.dd').format(item.diaryDate as DateTime);
+          } else {
+            DateTime d = DateTime.parse(item.diaryDate.toString());
+            dateStr = DateFormat('yyyy.MM.dd').format(d);
+          }
+        } catch(e) {
+          dateStr = item.diaryDate.toString();
+        }
+
+        frames.add({
+          'url': path,
+          'date': dateStr,
+        });
+      }
+
+      if (frames.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('이미지를 불러올 수 없습니다.')),
+        );
+        return;
+      }
+
+      // 3. 타임랩스 플레이어 팝업 표시
       showDialog(
         context: context,
-        barrierColor: Colors.black.withOpacity(0.3),
-        builder: (context) => BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: AlertDialog(
-            backgroundColor: appTheme.white_A700,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.h),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.play_circle_outline,
-                    color: appTheme.teal_400, size: 48.h),
-                SizedBox(height: 16.h),
-                Text(
-                  '타임랩스 재생',
-                  style: TextStyle(
-                    color: appTheme.gray_800,
-                    fontSize: 18.fSize,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  '${timeline.items.length}장의 사진으로\n타임랩스를 재생합니다.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFF797979),
-                    fontSize: 14.fSize,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  '확인',
-                  style: TextStyle(
-                    color: appTheme.teal_400,
-                    fontSize: 16.fSize,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        barrierColor: Colors.black.withOpacity(0.8), // 배경을 어둡게
+        builder: (context) => TimelapsePlayerDialog(frames: frames),
       );
+
     } catch (e) {
+      if (Navigator.canPop(context)) Navigator.pop(context); // 로딩 닫기 시도
+      print('타임라인 조회 실패: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('타임라인 조회 실패: $e')),
+        SnackBar(content: Text('타임라인을 불러오는데 실패했습니다.')),
       );
     }
   }
@@ -791,9 +806,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
   }
 }
 
-// ==========================================================================
-// [수정 완료] DiaryCreateDialog - 사진 없이도 내용만으로 등록 가능하게 수정
-// ==========================================================================
 class DiaryCreateDialog extends StatefulWidget {
   final DateTime date;
   final int userPlantId;
@@ -819,7 +831,6 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
     super.dispose();
   }
 
-  /// 카메라 또는 갤러리에서 사진 가져오기
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? image = await _picker.pickImage(source: source);
@@ -833,7 +844,6 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
     }
   }
 
-  /// 이미지 소스 선택 시트 표시
   void _showImageSourceSheet() {
     showModalBottomSheet(
       context: context,
@@ -868,9 +878,7 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
     );
   }
 
-  /// 다이어리 저장 (API 호출)
   Future<void> _saveDiary() async {
-    // [수정] 사진과 내용 둘 다 없는 경우에만 경고
     if (_selectedImagePath == null && _contentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('사진 또는 내용을 입력해주세요.')),
@@ -878,7 +886,6 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
       return;
     }
 
-    // 로딩 표시
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -891,12 +898,12 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
       await ApiService.createDiary(
         userPlantId: widget.userPlantId,
         diaryDate: widget.date,
-        content: _contentController.text, // 내용 그대로 전달 (빈 문자열 허용)
-        imagePath: _selectedImagePath, // 이미지가 없으면 null 전달
+        content: _contentController.text,
+        imagePath: _selectedImagePath,
       );
 
       Navigator.pop(context); // 로딩 닫기
-      Navigator.pop(context, true); // 다이얼로그 닫기 및 성공 신호 전달
+      Navigator.pop(context, true); // 다이얼로그 닫기
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -935,7 +942,6 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. 날짜 헤더
               Text(
                 '${widget.date.year}년 ${widget.date.month}월 ${widget.date.day}일',
                 textAlign: TextAlign.center,
@@ -949,7 +955,6 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
               ),
               SizedBox(height: 20.h),
 
-              // 2. 이미지 미리보기 및 선택 영역
               GestureDetector(
                 onTap: _showImageSourceSheet,
                 child: Container(
@@ -993,7 +998,6 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
               ),
               SizedBox(height: 20.h),
 
-              // 3. 내용 입력 필드
               CustomTextFormField(
                 controller: _contentController,
                 placeholder: '오늘의 식물 상태를 기록해보세요.',
@@ -1005,7 +1009,6 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
               ),
               SizedBox(height: 24.h),
 
-              // 4. 버튼 영역 (취소 / 확인)
               Row(
                 children: [
                   Expanded(
@@ -1110,18 +1113,7 @@ class DiaryDetailDialog extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10.h),
               ),
               clipBehavior: Clip.antiAlias,
-              child: diary.imageUrl != null && diary.imageUrl!.isNotEmpty
-                  ? CustomImageView(
-                imagePath: diary.imageUrl,
-                fit: BoxFit.cover,
-              )
-                  : Center(
-                child: Icon(
-                  Icons.image,
-                  size: 60.h,
-                  color: appTheme.teal_400,
-                ),
-              ),
+              child: _buildDiaryImage(),
             ),
             SizedBox(height: 20.h),
             Container(
@@ -1187,6 +1179,257 @@ class DiaryDetailDialog extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiaryImage() {
+    if (diary.imageUrl == null || diary.imageUrl!.isEmpty) {
+      return Center(
+        child: Icon(
+          Icons.image,
+          size: 60.h,
+          color: appTheme.teal_400,
+        ),
+      );
+    }
+
+    String path = diary.imageUrl!;
+
+    // 로컬 파일 경로 확인
+    if (!path.startsWith('http') && (path.startsWith('/') || path.contains(r'\'))) {
+      File file = File(path);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildErrorIcon();
+          },
+        );
+      }
+    }
+
+    // 서버 경로 URL 변환
+    if (!path.startsWith('http') && !path.startsWith('assets/')) {
+      String baseUrl = ApiService.baseUrl;
+      if (baseUrl.endsWith('/api')) {
+        baseUrl = baseUrl.substring(0, baseUrl.length - 4);
+      }
+
+      if (!path.startsWith('/')) path = '/$path';
+      path = '$baseUrl$path';
+    }
+
+    return CustomImageView(
+      imagePath: path,
+      fit: BoxFit.cover,
+      placeHolder: ImageConstant.imgPlaceholder,
+    );
+  }
+
+  Widget _buildErrorIcon() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.broken_image, color: Colors.grey),
+          Text('이미지를 찾을 수 없음', style: TextStyle(fontSize: 10)),
+        ],
+      ),
+    );
+  }
+}
+
+/// [신규] 타임랩스 플레이어 팝업 위젯
+class TimelapsePlayerDialog extends StatefulWidget {
+  final List<Map<String, String>> frames; // [{'url': '...', 'date': '2023.10.01'}, ...]
+
+  const TimelapsePlayerDialog({Key? key, required this.frames}) : super(key: key);
+
+  @override
+  State<TimelapsePlayerDialog> createState() => _TimelapsePlayerDialogState();
+}
+
+class _TimelapsePlayerDialogState extends State<TimelapsePlayerDialog> {
+  int _currentIndex = 0;
+  Timer? _timer;
+  bool _isPlaying = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(milliseconds: 500), (timer) {
+      setState(() {
+        _currentIndex = (_currentIndex + 1) % widget.frames.length;
+      });
+    });
+    setState(() => _isPlaying = true);
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    setState(() => _isPlaying = false);
+  }
+
+  void _togglePlay() {
+    if (_isPlaying) {
+      _stopTimer();
+    } else {
+      _startTimer();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentFrame = widget.frames[_currentIndex];
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.all(20.h),
+      child: Container(
+        width: 330.h,
+        padding: EdgeInsets.all(20.h),
+        decoration: BoxDecoration(
+          color: appTheme.white_A700,
+          borderRadius: BorderRadius.circular(20.h),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 10.h,
+              offset: Offset(0, 4.h),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 상단 타이틀 및 닫기 버튼
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '타임랩스 재생',
+                  style: TextStyle(
+                    color: appTheme.teal_400,
+                    fontSize: 18.fSize,
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, color: Colors.grey),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            SizedBox(height: 10.h),
+
+            // 이미지 영역
+            Stack(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 250.h,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(10.h),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: CustomImageView(
+                    imagePath: currentFrame['url'],
+                    fit: BoxFit.contain, // 사진 전체가 보이도록 contain
+                    placeHolder: ImageConstant.imgPlaceholder,
+                  ),
+                ),
+                // 날짜 오버레이
+                Positioned(
+                  bottom: 10.h,
+                  right: 10.h,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(15.h),
+                    ),
+                    child: Text(
+                      currentFrame['date']!,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.fSize,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: 20.h),
+
+            // 컨트롤 버튼
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.skip_previous, size: 30.h, color: appTheme.teal_400),
+                  onPressed: () {
+                    _stopTimer();
+                    setState(() {
+                      _currentIndex = (_currentIndex - 1 + widget.frames.length) % widget.frames.length;
+                    });
+                  },
+                ),
+                SizedBox(width: 20.h),
+                InkWell(
+                  onTap: _togglePlay,
+                  child: Container(
+                    width: 50.h,
+                    height: 50.h,
+                    decoration: BoxDecoration(
+                      color: appTheme.teal_400,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 30.h,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 20.h),
+                IconButton(
+                  icon: Icon(Icons.skip_next, size: 30.h, color: appTheme.teal_400),
+                  onPressed: () {
+                    _stopTimer();
+                    setState(() {
+                      _currentIndex = (_currentIndex + 1) % widget.frames.length;
+                    });
+                  },
+                ),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            Text(
+              '${_currentIndex + 1} / ${widget.frames.length}',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12.fSize,
+              ),
             ),
           ],
         ),

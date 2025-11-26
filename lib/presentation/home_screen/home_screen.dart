@@ -45,17 +45,27 @@ class _HomeScreenState extends State<HomeScreen> {
   void _checkArgumentsAndFetchData() async {
     final args = ModalRoute.of(context)?.settings.arguments;
 
+    // [수정] 식물 선택 화면에서 넘어온 경우 (arguments가 PlantInfo 인스턴스일 때)
     if (args is PlantInfo) {
-      // 1. 식물 선택 화면에서 넘어온 경우
+      // 1. 선택된 식물 정보로 상태 업데이트 (적정 환경값 변경)
       setState(() {
         _selectedPlant = args;
+        _isLoading = true; // 센서 데이터 로딩 시작
       });
-      // 임시로 1번 데이터를 로드하거나, 등록 직후라면 API를 다시 호출하여 ID를 찾아야 함
-      // 우선 사용자 경험을 위해 내 식물 데이터를 다시 갱신하는 방향으로 유도
-      await _fetchMyPlantData();
+
+      // 2. 센서 데이터만 별도로 로드 (기기 ID 1번 고정)
+      // _fetchMyPlantData()를 호출하면 서버의 기존 식물 정보로 덮어씌워지므로 호출하지 않음
+      await _fetchSensorData(1);
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      // 3. 가이드 팝업 표시
       _showPlantGuideDialog();
+
     } else {
-      // 2. 앱 실행 시 일반적인 진입 (내 식물 조회)
+      // 2. 앱 실행 시 일반적인 진입 (내 식물 조회 및 센서 데이터 로드)
       await _fetchMyPlantData();
     }
   }
@@ -72,10 +82,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final userId = ApiService.currentUserId ?? 999;
       final userPlants = await ApiService.getUserPlants(userId);
 
-      // ============================================================
-      // [수정 핵심] 모든 사용자가 1번 기기(UserPlantId: 1)의 데이터를 보게 설정
-      // ============================================================
-
       // 실제 데이터를 조회할 타겟 ID (기기가 하나뿐이므로 1로 고정)
       const int sharedSensorId = 1;
 
@@ -90,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
         // ★ 센서 데이터만큼은 무조건 1번 기기 데이터를 가져옵니다.
         await _fetchSensorData(sharedSensorId);
 
-        // (아래는 식물 상세 정보 매칭 로직 - 기존과 동일)
+        // (아래는 식물 상세 정보 매칭 로직)
         if (plantId == null && plantName.isNotEmpty) {
           final allPlants = await ApiService.getAllPlants();
           final match = allPlants.firstWhere(
@@ -111,9 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
       } else {
-        // 2. [중요] 신규 가입해서 등록된 식물이 '아예 없는' 경우
+        // 2. 신규 가입해서 등록된 식물이 '아예 없는' 경우
         // 화면이 비어 보이지 않게 '공용 기기' 데이터를 강제로 보여줍니다.
-
         print("등록된 식물이 없어 공용 기기(ID: 1) 모드로 진입합니다.");
 
         // 센서 데이터 1번 호출
