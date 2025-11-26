@@ -1,9 +1,8 @@
-// lib/presentation/home_screen/home_screen.dart
-
 import 'dart:ui';
+import 'dart:async'; // [필수] Timer 사용을 위해 추가
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart'; // [필수] 그래프 패키지
-import 'package:intl/intl.dart';       // [필수] 날짜 포맷팅
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/app_export.dart';
 import '../../models/models.dart';
@@ -22,10 +21,11 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedTab = 0; // 0: 온도, 1: 습도, 2: 조도, 3: EC, 4: Co2
 
   PlantInfo? _selectedPlant;
-  SensorData24h? _sensorData; // 서버 데이터 또는 더미 데이터
+  SensorData24h? _sensorData;
   bool _isLoading = true;
+  Timer? _timer; // [추가] 자동 갱신 타이머
 
-  // 각 탭(센서)별 그래프 색상 정의
+  // 각 탭(센서)별 색상 정의
   final List<Color> _tabColors = [
     Color(0xFFEC7243), // 온도 - 주황/빨강
     Color(0xFF32C697), // 습도 - 민트
@@ -37,10 +37,24 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // 화면이 빌드된 후 초기 데이터 로드 시작
+    // 1. 화면 진입 시 초기 데이터 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkArgumentsAndFetchData();
     });
+
+    // 2. [추가] 30초마다 데이터 자동 갱신 (실시간 모니터링 효과)
+    _timer = Timer.periodic(Duration(seconds: 30), (timer) {
+      // 현재 보고 있는 기기가 있다면 데이터 갱신
+      // (지금은 임시로 deviceId 1번 사용 중)
+      _fetchSensorData(1, isBackgroundRefresh: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    // [추가] 화면 종료 시 타이머 해제 (메모리 누수 방지)
+    _timer?.cancel();
+    super.dispose();
   }
 
   /// 초기 데이터 확인 및 로드
@@ -48,42 +62,35 @@ class _HomeScreenState extends State<HomeScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
 
     if (args is PlantInfo) {
-      // 1. 식물 선택 화면에서 넘어온 경우
       setState(() {
         _selectedPlant = args;
       });
-      // 센서 데이터 로드 (더미 생성을 위해 ID 1 사용)
       await _fetchSensorData(1);
       _showPlantGuideDialog();
     } else {
-      // 2. 앱 실행 시 일반적인 진입 (내 식물 조회)
       await _fetchMyPlantData();
     }
   }
 
-  /// 내 식물 정보 조회 및 센서 데이터 로드
+  /// 내 식물 정보 조회
   Future<void> _fetchMyPlantData() async {
-    // 로그인이 안되어 있으면 로딩 종료 (단, Mock 모드면 진행)
     if (ApiService.currentUserId == null && !ApiService.isMockMode) {
       setState(() => _isLoading = false);
       return;
     }
-
     try {
-      // 내 식물 목록 가져오기
-      final userId = ApiService.currentUserId ?? 999; // Mock ID default
+      final userId = ApiService.currentUserId ?? 999;
       final userPlants = await ApiService.getUserPlants(userId);
 
       if (userPlants.isNotEmpty) {
         final firstUserPlant = userPlants[0];
 
-        // [임시] 첫 번째 식물의 디바이스 ID를 1로 가정하고 센서 데이터 로드
+        // 센서 데이터 로드 (디바이스 ID 1번 가정)
         await _fetchSensorData(1);
 
         int? plantId = firstUserPlant['plantId'];
         final String plantName = firstUserPlant['plantName'] ?? '';
 
-        // plantId가 없으면 이름으로 매칭 (더미 데이터 호환성)
         if (plantId == null && plantName.isNotEmpty) {
           final allPlants = await ApiService.getAllPlants();
           final match = allPlants.firstWhere(
@@ -111,26 +118,31 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print('홈 화면 데이터 로드 실패: $e');
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  /// 센서 데이터 API 호출 (실패 시 Service 내부에서 더미 반환)
-  Future<void> _fetchSensorData(int deviceId) async {
+  /// 센서 데이터 API 호출
+  /// [isBackgroundRefresh]: 타이머에 의한 백그라운드 갱신일 경우 로딩 화면을 띄우지 않음
+  Future<void> _fetchSensorData(int deviceId, {bool isBackgroundRefresh = false}) async {
     try {
       final data = await ApiService.getSensorData24h(deviceId);
-      setState(() {
-        _sensorData = data;
-      });
+      if (mounted) {
+        setState(() {
+          _sensorData = data;
+          if (!isBackgroundRefresh) _isLoading = false;
+        });
+      }
     } catch (e) {
       print("센서 데이터 로드 실패: $e");
+      if (mounted && !isBackgroundRefresh) setState(() => _isLoading = false);
     }
   }
 
-  /// 식물 가이드 팝업
+  // ... (나머지 UI 코드는 기존 디자인 유지) ...
+
   void _showPlantGuideDialog() {
     if (_selectedPlant == null) return;
-
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -149,7 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// 식물 가이드 팝업 위젯 (기존 디자인 유지)
   Widget _buildPlantGuidePopup() {
     final name = _selectedPlant?.name ?? '식물을 선택해주세요';
     final difficulty = _selectedPlant?.difficultyKorean ?? '-';
@@ -379,8 +390,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- [UI 빌드] ---
-
   @override
   Widget build(BuildContext context) {
     // 최신 센서 값 가져오기 (데이터 없으면 '-')
@@ -537,7 +546,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 5. 온도 카드 (실제 데이터 바인딩)
+                // 5. 온도 카드
                 Positioned(
                   left: 16.h,
                   top: 171.h,
@@ -637,7 +646,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Column(
                       children: [
-                        // 탭 버튼
                         Container(
                           margin: EdgeInsets.only(left: 10.h, right: 10.h, top: 14.h),
                           height: 21.h,
@@ -655,8 +663,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-
-                        // 차트 영역
                         Expanded(
                           child: Padding(
                             padding: EdgeInsets.only(left: 13.h, right: 20.h, top: 26.h, bottom: 13.h),
@@ -673,7 +679,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 SizedBox(height: 10.h),
-                                Expanded(child: _buildChart()), // 차트 그리기
+                                Expanded(child: _buildChart()),
                               ],
                             ),
                           ),
@@ -693,7 +699,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- Helper Methods ---
 
-  /// 센서 상태(정상/주의/위험) 판별
   String _getSensorStatus(String currentValueStr, double? min, double? max) {
     if (currentValueStr == '-' || min == null || max == null) return '-';
     double? val = double.tryParse(currentValueStr.replaceAll(RegExp(r'[^0-9.]'), ''));
@@ -701,7 +706,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (val >= min && val <= max) return '정상';
     double range = max - min;
-    // 범위에서 조금 벗어나면 주의, 많이 벗어나면 위험
     if (val < min - (range * 0.2) || val > max + (range * 0.2)) return '위험';
     return '주의';
   }
@@ -713,7 +717,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Color(0xFFEC7243);
   }
 
-  /// 차트 빌드 메서드 (fl_chart)
   Widget _buildChart() {
     if (_sensorData == null) {
       return Center(child: Text('데이터 로딩 중...', style: TextStyle(fontSize: 12, color: Colors.grey)));
@@ -732,13 +735,11 @@ class _HomeScreenState extends State<HomeScreen> {
       return Center(child: Text('표시할 데이터가 없습니다.', style: TextStyle(fontSize: 12, color: Colors.grey)));
     }
 
-    // 데이터 포인트를 차트용 Spot으로 변환 (X축: 인덱스)
     List<FlSpot> spots = [];
     for (int i = 0; i < targetSeries.points.length; i++) {
       spots.add(FlSpot(i.toDouble(), targetSeries.points[i].value));
     }
 
-    // Y축 범위 계산
     double minY = targetSeries.points.map((e) => e.value).reduce((a, b) => a < b ? a : b);
     double maxY = targetSeries.points.map((e) => e.value).reduce((a, b) => a > b ? a : b);
     double margin = (maxY - minY) * 0.2;
@@ -832,7 +833,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 카드 위젯 (기존 코드 유지)
   Widget _buildSensorCard({
     required double width,
     required double height,
