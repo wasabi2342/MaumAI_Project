@@ -113,6 +113,7 @@ class ApiService {
     required String email,
     required String password,
   }) async {
+
     // [MOCK] 마스터 계정 체크
     if (email == '1111@naver.com' && password == '111111') {
       isMockMode = true;
@@ -122,6 +123,7 @@ class ApiService {
       await Future.delayed(Duration(seconds: 1));
       return _mockUserProfile;
     }
+
 
     try {
       final response = await http.post(
@@ -529,21 +531,33 @@ class ApiService {
   }
 
   /// 특정 기기의 최근 24시간 센서 데이터 조회
-  static Future<SensorData24h?> getSensorData24h(int deviceId) async {
-    if (isMockMode) return _generateMockSensorData(deviceId);
+  static Future<SensorData24h?> getSensorData24h(int userPlantId) async {
+
+    // [확인 1] 실제 요청하는 주소 출력
+    final url = Uri.parse('$baseUrl/devices/$userPlantId/sensors/last24h');
+    print("[API 요청] URL: $url");
 
     try {
-      final response = await http
-          .get(Uri.parse('$baseUrl/devices/$deviceId/sensors/last24h'))
-          .timeout(timeoutDuration);
+      final response = await http.get(url).timeout(timeoutDuration);
+
+      print("[API 응답] 상태 코드: ${response.statusCode}");
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        // [확인 2] 서버에서 온 진짜 JSON 데이터 원본 출력 (매우 중요!)
+        String jsonString = utf8.decode(response.bodyBytes);
+        print("[API 응답 본문]: $jsonString");
+
+        final data = jsonDecode(jsonString);
         return SensorData24h.fromJson(data);
+      } else {
+        print("[API 오류] 서버 에러 발생: ${response.body}");
+        return null; // 에러 시 더미 대신 null 반환
       }
-    } catch (e) {}
-    // 실패 시 Mock 데이터 반환
-    return _generateMockSensorData(deviceId);
+    } catch (e) {
+      print("[통신 오류] 연결 실패 또는 파싱 에러: $e");
+      // return _generateMockSensorData(userPlantId); // <--- [핵심] 이 줄을 주석 처리 하세요!
+      return null; // 실패하면 그냥 비워둠
+    }
   }
 
   static SensorData24h _generateMockSensorData(int deviceId) {

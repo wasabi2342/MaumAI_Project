@@ -1,5 +1,3 @@
-// lib/presentation/home_screen/home_screen.dart
-
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart'; // [필수] 그래프 패키지
@@ -22,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedTab = 0; // 0: 온도, 1: 습도, 2: 조도, 3: EC, 4: Co2
 
   PlantInfo? _selectedPlant;
-  SensorData24h? _sensorData; // 서버 데이터 또는 더미 데이터
+  SensorData24h? _sensorData; // 서버 데이터
   bool _isLoading = true;
 
   // 각 탭(센서)별 그래프 색상 정의
@@ -52,8 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _selectedPlant = args;
       });
-      // 센서 데이터 로드 (더미 생성을 위해 ID 1 사용)
-      await _fetchSensorData(1);
+      // 임시로 1번 데이터를 로드하거나, 등록 직후라면 API를 다시 호출하여 ID를 찾아야 함
+      // 우선 사용자 경험을 위해 내 식물 데이터를 다시 갱신하는 방향으로 유도
+      await _fetchMyPlantData();
       _showPlantGuideDialog();
     } else {
       // 2. 앱 실행 시 일반적인 진입 (내 식물 조회)
@@ -61,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// 내 식물 정보 조회 및 센서 데이터 로드
+  /// 내 식물 정보 조회 및 센서 데이터 로드 (모든 유저가 1번 기기 데이터 공유)
   Future<void> _fetchMyPlantData() async {
     // 로그인이 안되어 있으면 로딩 종료 (단, Mock 모드면 진행)
     if (ApiService.currentUserId == null && !ApiService.isMockMode) {
@@ -70,44 +69,68 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      // 내 식물 목록 가져오기
-      final userId = ApiService.currentUserId ?? 999; // Mock ID default
+      final userId = ApiService.currentUserId ?? 999;
       final userPlants = await ApiService.getUserPlants(userId);
 
+      // ============================================================
+      // [수정 핵심] 모든 사용자가 1번 기기(UserPlantId: 1)의 데이터를 보게 설정
+      // ============================================================
+
+      // 실제 데이터를 조회할 타겟 ID (기기가 하나뿐이므로 1로 고정)
+      const int sharedSensorId = 1;
+
       if (userPlants.isNotEmpty) {
+        // 1. 사용자에게 등록된 식물이 있는 경우
         final firstUserPlant = userPlants[0];
 
-        // [임시] 첫 번째 식물의 디바이스 ID를 1로 가정하고 센서 데이터 로드
-        await _fetchSensorData(1);
-
+        // 내 식물 정보(이름 등)는 내 것을 쓰지만...
         int? plantId = firstUserPlant['plantId'];
         final String plantName = firstUserPlant['plantName'] ?? '';
 
-        // plantId가 없으면 이름으로 매칭 (더미 데이터 호환성)
+        // ★ 센서 데이터만큼은 무조건 1번 기기 데이터를 가져옵니다.
+        await _fetchSensorData(sharedSensorId);
+
+        // (아래는 식물 상세 정보 매칭 로직 - 기존과 동일)
         if (plantId == null && plantName.isNotEmpty) {
           final allPlants = await ApiService.getAllPlants();
           final match = allPlants.firstWhere(
                 (json) => json['name'] == plantName,
             orElse: () => null,
           );
-          if (match != null) {
-            plantId = match['id'];
-          }
+          if (match != null) plantId = match['id'];
         }
 
         if (plantId != null) {
           final plantDetailJson = await ApiService.getPlantDetail(plantId);
-          final plantInfo = PlantInfo.fromJson(plantDetailJson);
-
           setState(() {
-            _selectedPlant = plantInfo;
+            _selectedPlant = PlantInfo.fromJson(plantDetailJson);
             _isLoading = false;
           });
         } else {
           setState(() => _isLoading = false);
         }
+
       } else {
-        setState(() => _isLoading = false);
+        // 2. [중요] 신규 가입해서 등록된 식물이 '아예 없는' 경우
+        // 화면이 비어 보이지 않게 '공용 기기' 데이터를 강제로 보여줍니다.
+
+        print("등록된 식물이 없어 공용 기기(ID: 1) 모드로 진입합니다.");
+
+        // 센서 데이터 1번 호출
+        await _fetchSensorData(sharedSensorId);
+
+        // 식물 정보도 기본값(예: 로메인 상추)으로 세팅해서 화면에 보여줌
+        try {
+          // 기본 식물 정보(ID 1: 상추) 가져오기 시도
+          final defaultPlantJson = await ApiService.getPlantDetail(1);
+          setState(() {
+            _selectedPlant = PlantInfo.fromJson(defaultPlantJson);
+            _isLoading = false;
+          });
+        } catch (e) {
+          // 그것도 실패하면 로딩만 끝냄
+          setState(() => _isLoading = false);
+        }
       }
     } catch (e) {
       print('홈 화면 데이터 로드 실패: $e');
@@ -115,10 +138,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// 센서 데이터 API 호출 (실패 시 Service 내부에서 더미 반환)
-  Future<void> _fetchSensorData(int deviceId) async {
+  /// 센서 데이터 API 호출
+  /// [deviceId] 파라미터는 실제로는 UserPlantId입니다.
+  Future<void> _fetchSensorData(int userPlantId) async {
     try {
-      final data = await ApiService.getSensorData24h(deviceId);
+      final data = await ApiService.getSensorData24h(userPlantId);
       setState(() {
         _sensorData = data;
       });
@@ -716,7 +740,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 차트 빌드 메서드 (fl_chart)
   Widget _buildChart() {
     if (_sensorData == null) {
-      return Center(child: Text('데이터 로딩 중...', style: TextStyle(fontSize: 12, color: Colors.grey)));
+      return Center(child: Text('데이터 로딩 중 또는 없음', style: TextStyle(fontSize: 12, color: Colors.grey)));
     }
 
     SensorSeries? targetSeries;

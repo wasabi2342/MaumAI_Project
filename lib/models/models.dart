@@ -437,9 +437,8 @@ class SensorSeries {
   double? get latestValue => points.isNotEmpty ? points.last.value : null;
 }
 
-/// 24시간 전체 응답 모델 (신규 추가)
 class SensorData24h {
-  final int deviceId;
+  final int deviceId; // 내부에서는 deviceId로 쓰지만 값은 userPlantId가 들어감
   final DateTime from;
   final DateTime to;
   final SensorSeries temperature;
@@ -461,7 +460,9 @@ class SensorData24h {
 
   factory SensorData24h.fromJson(Map<String, dynamic> json) {
     return SensorData24h(
-      deviceId: json['deviceId'],
+      // [수정 핵심] 서버는 'userPlantId'로 줍니다. 없을 경우를 대비해 'deviceId'도 찾고, 정 없으면 0.
+      deviceId: json['userPlantId'] ?? json['deviceId'] ?? 0,
+
       from: DateTime.parse(json['from']),
       to: DateTime.parse(json['to']),
       temperature: SensorSeries.fromJson(json['temperature']),
