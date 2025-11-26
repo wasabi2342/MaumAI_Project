@@ -223,7 +223,7 @@ class LoginScreen extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 6.h, vertical: 6.h),
           ),
         ),
-        SizedBox(width: 23.h),
+        SizedBox(width: 15.h),
         // 구글 로그인 버튼
         Expanded(
           child: CustomButton(
