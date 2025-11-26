@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +10,8 @@ import '../../models/models.dart';
 import '../../widgets/custom_image_view.dart';
 import '../../widgets/custom_top_app_bar.dart';
 import '../../widgets/custom_bottom_nav_bar.dart';
+import '../../widgets/custom_button.dart';
+import '../../widgets/custom_text_form_field.dart';
 
 /// DiaryScreen - 식물 성장 다이어리 화면
 class DiaryScreen extends StatefulWidget {
@@ -39,6 +42,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is int) {
       _userPlantId = args;
+    } else if (args is PlantInfo) {
+      // 홈 화면 등에서 PlantInfo 객체로 넘어온 경우 처리 (필요시 id 추출)
+      _userPlantId = args.id;
     }
     _fetchMonthData();
   }
@@ -82,14 +88,30 @@ class _DiaryScreenState extends State<DiaryScreen> {
     _fetchMonthData();
   }
 
-  void _onDateTapped(DateTime date) {
+  void _onDateTapped(DateTime date) async {
     final dateKey = DateFormat('yyyy-MM-dd').format(date);
     final dayData = _calendarDaysMap[dateKey];
 
     if (dayData != null && dayData.hasDiary) {
       _fetchAndShowDetail(date);
     } else {
-      _showDiaryCreateDialog(date);
+      // 다이어리 작성 다이얼로그 표시하고 결과 대기
+      final result = await showDialog(
+        context: context,
+        barrierColor: Color(0x3FD9D9D9),
+        builder: (context) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: DiaryCreateDialog(
+            date: date,
+            userPlantId: _userPlantId,
+          ),
+        ),
+      );
+
+      // 작성이 완료되어 true가 반환되면 목록 새로고침
+      if (result == true) {
+        _fetchMonthData();
+      }
     }
   }
 
@@ -115,60 +137,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('다이어리를 불러오는데 실패했습니다.')),
       );
-    }
-  }
-
-  void _showDiaryCreateDialog(DateTime date) {
-    showDialog(
-      context: context,
-      barrierColor: Color(0x3FD9D9D9),
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: DiaryCreateDialog(
-          date: date,
-          onPhotoCapture: () {
-            Navigator.of(context).pop();
-            _captureDiaryPhoto(date);
-          },
-        ),
-      ),
-    );
-  }
-
-  void _captureDiaryPhoto(DateTime date) async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
-    if (image != null) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) =>
-            Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
-      );
-
-      try {
-        await ApiService.createDiary(
-          userPlantId: _userPlantId,
-          diaryDate: date,
-          content: '오늘의 성장 기록',
-          imagePath: image.path,
-        );
-
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('다이어리가 등록되었습니다.'),
-            backgroundColor: appTheme.teal_400,
-          ),
-        );
-        _fetchMonthData();
-      } catch (e) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('등록 실패: ${e.toString()}')),
-        );
-      }
     }
   }
 
@@ -341,14 +309,12 @@ class _DiaryScreenState extends State<DiaryScreen> {
             ),
             SliverToBoxAdapter(
               child: Stack(
-                // [중요] Stack을 사용하여 겹치는 순서 제어
                 children: [
-                  // 1. 하단 달력 섹션 (먼저 그려짐 -> 아래에 깔림)
                   Padding(
-                    padding: EdgeInsets.only(top: 198.h), // 상단 섹션 높이만큼 아래로 밀기
+                    padding: EdgeInsets.only(top: 198.h),
                     child: Container(
                       width: double.infinity,
-                      color: appTheme.white_A700, // 흰색 배경
+                      color: appTheme.white_A700,
                       child: Column(
                         children: [
                           SizedBox(height: 30.h),
@@ -358,8 +324,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       ),
                     ),
                   ),
-
-                  // 2. 상단 성장 정보 섹션 (나중에 그려짐 -> 위에 올라옴 + 그림자)
                   Container(
                     width: double.infinity,
                     height: 198.h,
@@ -367,9 +331,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       color: appTheme.green_50,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05), // 은은한 그림자
+                          color: Colors.black.withOpacity(0.05),
                           blurRadius: 20.h,
-                          offset: Offset(0, 10.h), // 아래쪽으로 떨어지는 그림자
+                          offset: Offset(0, 10.h),
                           spreadRadius: 0,
                         ),
                       ],
@@ -827,95 +791,267 @@ class _DiaryScreenState extends State<DiaryScreen> {
   }
 }
 
-class DiaryCreateDialog extends StatelessWidget {
+// ==========================================================================
+// [수정 완료] DiaryCreateDialog - 사진 없이도 내용만으로 등록 가능하게 수정
+// ==========================================================================
+class DiaryCreateDialog extends StatefulWidget {
   final DateTime date;
-  final VoidCallback onPhotoCapture;
+  final int userPlantId;
 
   const DiaryCreateDialog({
     Key? key,
     required this.date,
-    required this.onPhotoCapture,
+    required this.userPlantId,
   }) : super(key: key);
+
+  @override
+  State<DiaryCreateDialog> createState() => _DiaryCreateDialogState();
+}
+
+class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
+  final TextEditingController _contentController = TextEditingController();
+  String? _selectedImagePath;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void dispose() {
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  /// 카메라 또는 갤러리에서 사진 가져오기
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(source: source);
+      if (image != null) {
+        setState(() {
+          _selectedImagePath = image.path;
+        });
+      }
+    } catch (e) {
+      print('이미지 선택 실패: $e');
+    }
+  }
+
+  /// 이미지 소스 선택 시트 표시
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.h)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.camera_alt, color: appTheme.teal_400),
+                title: Text('카메라로 촬영'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library, color: appTheme.teal_400),
+                title: Text('갤러리에서 선택'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 다이어리 저장 (API 호출)
+  Future<void> _saveDiary() async {
+    // [수정] 사진과 내용 둘 다 없는 경우에만 경고
+    if (_selectedImagePath == null && _contentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('사진 또는 내용을 입력해주세요.')),
+      );
+      return;
+    }
+
+    // 로딩 표시
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: CircularProgressIndicator(color: appTheme.teal_400),
+      ),
+    );
+
+    try {
+      await ApiService.createDiary(
+        userPlantId: widget.userPlantId,
+        diaryDate: widget.date,
+        content: _contentController.text, // 내용 그대로 전달 (빈 문자열 허용)
+        imagePath: _selectedImagePath, // 이미지가 없으면 null 전달
+      );
+
+      Navigator.pop(context); // 로딩 닫기
+      Navigator.pop(context, true); // 다이얼로그 닫기 및 성공 신호 전달
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('다이어리가 등록되었습니다.'),
+          backgroundColor: appTheme.teal_400,
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context); // 로딩 닫기
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('등록 실패: ${e.toString()}')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.symmetric(horizontal: 48.h),
-      child: Container(
-        width: 297.h,
-        padding: EdgeInsets.all(27.h),
-        decoration: BoxDecoration(
-          color: appTheme.white_A700,
-          borderRadius: BorderRadius.circular(20.h),
-          boxShadow: [
-            BoxShadow(
-              color: appTheme.color66D3D3,
-              blurRadius: 8.h,
-              offset: Offset(0, 4.h),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${date.year}   ${date.month}/${date.day}',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: appTheme.teal_400,
-                fontSize: 16.fSize,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w500,
-                height: 1.0,
+      insetPadding: EdgeInsets.symmetric(horizontal: 30.h),
+      child: SingleChildScrollView(
+        child: Container(
+          width: 330.h,
+          padding: EdgeInsets.all(24.h),
+          decoration: BoxDecoration(
+            color: appTheme.white_A700,
+            borderRadius: BorderRadius.circular(20.h),
+            boxShadow: [
+              BoxShadow(
+                color: appTheme.color66D3D3,
+                blurRadius: 8.h,
+                offset: Offset(0, 4.h),
               ),
-            ),
-            SizedBox(height: 30.h),
-            InkWell(
-              onTap: onPhotoCapture,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 20.h, vertical: 12.h),
-                decoration: BoxDecoration(
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. 날짜 헤더
+              Text(
+                '${widget.date.year}년 ${widget.date.month}월 ${widget.date.day}일',
+                textAlign: TextAlign.center,
+                style: TextStyle(
                   color: appTheme.teal_400,
-                  borderRadius: BorderRadius.circular(10.h),
+                  fontSize: 16.fSize,
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w600,
+                  height: 1.0,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.camera_alt,
-                        color: appTheme.white_A700, size: 20.h),
-                    SizedBox(width: 8.h),
-                    Text(
-                      '사진 촬영',
-                      style: TextStyle(
-                        color: appTheme.white_A700,
-                        fontSize: 14.fSize,
-                        fontFamily: 'Pretendard',
-                        fontWeight: FontWeight.w600,
+              ),
+              SizedBox(height: 20.h),
+
+              // 2. 이미지 미리보기 및 선택 영역
+              GestureDetector(
+                onTap: _showImageSourceSheet,
+                child: Container(
+                  width: double.infinity,
+                  height: 200.h,
+                  decoration: BoxDecoration(
+                    color: appTheme.green_50,
+                    borderRadius: BorderRadius.circular(12.h),
+                    border: Border.all(
+                      color: appTheme.teal_400.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _selectedImagePath != null
+                      ? Image.file(
+                    File(_selectedImagePath!),
+                    fit: BoxFit.cover,
+                  )
+                      : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_a_photo,
+                        size: 40.h,
+                        color: appTheme.teal_400,
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        '사진 추가하기 (선택)',
+                        style: TextStyle(
+                          color: appTheme.teal_400,
+                          fontSize: 14.fSize,
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 20.h),
+
+              // 3. 내용 입력 필드
+              CustomTextFormField(
+                controller: _contentController,
+                placeholder: '오늘의 식물 상태를 기록해보세요.',
+                maxLines: 4,
+                fillColor: appTheme.green_50.withOpacity(0.5),
+                borderColor: appTheme.teal_400.withOpacity(0.3),
+                borderRadius: 12.h,
+                contentPadding: EdgeInsets.all(12.h),
+              ),
+              SizedBox(height: 24.h),
+
+              // 4. 버튼 영역 (취소 / 확인)
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                      ),
+                      child: Text(
+                        '취소',
+                        style: TextStyle(
+                          color: Color(0xFF797979),
+                          fontSize: 14.fSize,
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  SizedBox(width: 10.h),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _saveDiary,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: appTheme.teal_400,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.h),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                      ),
+                      child: Text(
+                        '확인',
+                        style: TextStyle(
+                          fontSize: 14.fSize,
+                          fontFamily: 'Pretendard',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            SizedBox(height: 20.h),
-            Text(
-              '사진을 등록하여\n일기를 작성해주세요.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF797979),
-                fontSize: 14.fSize,
-                fontFamily: 'Pretendard',
-                fontWeight: FontWeight.w500,
-                height: 1.3,
-              ),
-            ),
-            SizedBox(height: 20.h),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Icon(Icons.close, color: Color(0xFF797979), size: 24.h),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

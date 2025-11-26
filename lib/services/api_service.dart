@@ -62,6 +62,9 @@ class ApiService {
     }
   ];
 
+  // [수정] 더미 다이어리 저장소 (메모리 상에 임시 저장)
+  static List<Map<String, dynamic>> _mockDiaries = [];
+
   // ============================================
   // 1. 사용자 관련 API
   // ============================================
@@ -120,6 +123,10 @@ class ApiService {
       currentUserId = _mockUserProfile['id'];
       currentUserEmail = _mockUserProfile['email'];
       currentUserNickname = _mockUserProfile['nickname'];
+
+      // 마스터 계정 로그인 시 기존 더미 데이터 초기화 방지 (필요시)
+      // _mockDiaries.clear();
+
       await Future.delayed(Duration(seconds: 1));
       return _mockUserProfile;
     }
@@ -163,6 +170,7 @@ class ApiService {
       currentUserEmail = null;
       currentUserNickname = null;
       isMockMode = false;
+      _mockDiaries.clear(); // 로그아웃 시 더미 데이터 정리
     }
   }
 
@@ -225,7 +233,7 @@ class ApiService {
     }
   }
 
-  /// [복구됨] 비밀번호 변경
+  /// 비밀번호 변경
   static Future<void> changePassword({
     required int userId,
     required String currentPassword,
@@ -250,7 +258,7 @@ class ApiService {
     }
   }
 
-  /// [복구됨] 회원 탈퇴
+  /// 회원 탈퇴
   static Future<void> deleteUser(int userId) async {
     if (isMockMode) {
       currentUserId = null;
@@ -280,7 +288,6 @@ class ApiService {
     return _mockAllPlants;
   }
 
-  /// [복구됨] 식물 상세 정보 조회
   static Future<Map<String, dynamic>> getPlantDetail(int plantId) async {
     if (isMockMode) {
       return _mockAllPlants.firstWhere((e) => e['id'] == plantId, orElse: () => _mockAllPlants[0]);
@@ -356,14 +363,45 @@ class ApiService {
     required int year,
     required int month,
   }) async {
-    if (isMockMode) return {'days': []};
+    // [수정] Mock 모드일 때 _mockDiaries에서 데이터 조회 후 반환
+    if (isMockMode) {
+      final filteredDays = _mockDiaries.where((diary) {
+        DateTime d = DateTime.parse(diary['diaryDate']);
+        return diary['userPlantId'] == userPlantId && d.year == year && d.month == month;
+      }).map((diary) {
+        return {
+          'date': diary['diaryDate'],
+          'hasDiary': true,
+          'diaryId': diary['id'],
+          'thumbnailUrl': diary['imageUrl']
+        };
+      }).toList();
+
+      return {
+        'userPlantId': userPlantId,
+        'daysSincePlanted': 10,
+        'photoCount': filteredDays.length,
+        'year': year,
+        'month': month,
+        'days': filteredDays,
+      };
+    }
+
     try {
       final response = await http.get(
           Uri.parse('$baseUrl/diary/calendar?userPlantId=$userPlantId&year=$year&month=$month')
       ).timeout(timeoutDuration);
       if(response.statusCode == 200) return jsonDecode(utf8.decode(response.bodyBytes));
     } catch(e) {}
-    return {'days': []};
+    // 실패 시 빈 달력
+    return {
+      'userPlantId': userPlantId,
+      'daysSincePlanted': 0,
+      'photoCount': 0,
+      'year': year,
+      'month': month,
+      'days': [],
+    };
   }
 
   /// 특정 날짜 다이어리 조회
@@ -371,8 +409,19 @@ class ApiService {
     required int userPlantId,
     required DateTime date,
   }) async {
-    if (isMockMode) throw Exception('No diary');
     final dateStr = date.toIso8601String().split('T')[0];
+
+    // [수정] Mock 모드일 때 _mockDiaries에서 검색
+    if (isMockMode) {
+      final found = _mockDiaries.firstWhere(
+            (element) => element['userPlantId'] == userPlantId && element['diaryDate'].startsWith(dateStr),
+        orElse: () => {},
+      );
+
+      if (found.isNotEmpty) return found;
+      throw Exception('No diary found (Mock)');
+    }
+
     try {
       final response = await http.get(
           Uri.parse('$baseUrl/diary?userPlantId=$userPlantId&date=$dateStr')
@@ -389,7 +438,22 @@ class ApiService {
     String? content,
     String? imagePath,
   }) async {
-    if (isMockMode) return {};
+    // [수정] Mock 모드일 때 _mockDiaries에 데이터 추가
+    if (isMockMode) {
+      final newId = _mockDiaries.length + 1;
+      final newDiary = {
+        'id': newId,
+        'userPlantId': userPlantId,
+        'diaryDate': diaryDate.toIso8601String().split('T')[0],
+        'content': content ?? '',
+        'imageUrl': imagePath ?? '', // 로컬 경로 저장 (실제 URL 아님)
+        'createdAt': DateTime.now().toIso8601String(),
+        'updatedAt': null,
+      };
+      _mockDiaries.add(newDiary);
+      await Future.delayed(Duration(milliseconds: 500)); // 통신 흉내
+      return newDiary;
+    }
 
     try {
       var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/diary'));
@@ -411,13 +475,23 @@ class ApiService {
     }
   }
 
-  /// [복구됨] 다이어리 수정
+  /// 다이어리 수정
   static Future<Map<String, dynamic>> updateDiary({
     required int diaryId,
     String? content,
     String? imagePath,
   }) async {
-    if (isMockMode) return {};
+    // [수정] Mock 모드일 때 수정 로직
+    if (isMockMode) {
+      final index = _mockDiaries.indexWhere((element) => element['id'] == diaryId);
+      if (index != -1) {
+        if (content != null) _mockDiaries[index]['content'] = content;
+        if (imagePath != null) _mockDiaries[index]['imageUrl'] = imagePath;
+        _mockDiaries[index]['updatedAt'] = DateTime.now().toIso8601String();
+        return _mockDiaries[index];
+      }
+      return {};
+    }
 
     try {
       var request = http.MultipartRequest('PUT', Uri.parse('$baseUrl/diary/$diaryId'));
@@ -440,9 +514,14 @@ class ApiService {
     }
   }
 
-  /// [복구됨] 다이어리 삭제
+  /// 다이어리 삭제
   static Future<void> deleteDiary(int diaryId) async {
-    if (isMockMode) return;
+    // [수정] Mock 모드일 때 삭제 로직
+    if (isMockMode) {
+      _mockDiaries.removeWhere((element) => element['id'] == diaryId);
+      return;
+    }
+
     try {
       final response = await http.delete(Uri.parse('$baseUrl/diary/$diaryId')).timeout(timeoutDuration);
       if (response.statusCode != 204 && response.statusCode != 200) {
@@ -453,9 +532,25 @@ class ApiService {
     }
   }
 
-  /// [복구됨] 타임라인 조회
+  /// 타임라인 조회
   static Future<Map<String, dynamic>> getTimeline(int userPlantId) async {
-    if (isMockMode) return {'items': []};
+    // [수정] Mock 모드일 때 타임라인 조회
+    if (isMockMode) {
+      final items = _mockDiaries
+          .where((d) => d['userPlantId'] == userPlantId && d['imageUrl'] != null && d['imageUrl'].isNotEmpty)
+          .map((d) => {
+        'id': d['id'],
+        'diaryDate': d['diaryDate'],
+        'imageUrl': d['imageUrl'],
+        'content': d['content'],
+      }).toList();
+
+      return {
+        'userPlantId': userPlantId,
+        'items': items,
+      };
+    }
+
     try {
       final response = await http.get(Uri.parse('$baseUrl/diary/timeline?userPlantId=$userPlantId')).timeout(timeoutDuration);
       if (response.statusCode == 200) {
@@ -532,31 +627,24 @@ class ApiService {
 
   /// 특정 기기의 최근 24시간 센서 데이터 조회
   static Future<SensorData24h?> getSensorData24h(int userPlantId) async {
+    if (isMockMode) {
+      return _generateMockSensorData(userPlantId);
+    }
 
-    // [확인 1] 실제 요청하는 주소 출력
     final url = Uri.parse('$baseUrl/devices/$userPlantId/sensors/last24h');
-    print("[API 요청] URL: $url");
 
     try {
       final response = await http.get(url).timeout(timeoutDuration);
 
-      print("[API 응답] 상태 코드: ${response.statusCode}");
-
       if (response.statusCode == 200) {
-        // [확인 2] 서버에서 온 진짜 JSON 데이터 원본 출력 (매우 중요!)
         String jsonString = utf8.decode(response.bodyBytes);
-        print("[API 응답 본문]: $jsonString");
-
         final data = jsonDecode(jsonString);
         return SensorData24h.fromJson(data);
       } else {
-        print("[API 오류] 서버 에러 발생: ${response.body}");
-        return null; // 에러 시 더미 대신 null 반환
+        return null;
       }
     } catch (e) {
-      print("[통신 오류] 연결 실패 또는 파싱 에러: $e");
-      // return _generateMockSensorData(userPlantId); // <--- [핵심] 이 줄을 주석 처리 하세요!
-      return null; // 실패하면 그냥 비워둠
+      return null;
     }
   }
 
