@@ -1,3 +1,5 @@
+// lib/models/models.dart
+
 // ============================================
 // 사용자 관련 모델
 // ============================================
@@ -94,7 +96,6 @@ class PlantInfo {
       co2Max: json['co2Max']?.toDouble(),
       ecMin: json['ecMin']?.toDouble(),
       ecMax: json['ecMax']?.toDouble(),
-
     );
   }
 
@@ -141,6 +142,7 @@ class PlantInfo {
     }
     return '-';
   }
+
   /// CO2 범위 문자열
   String get co2Range {
     if (co2Min != null && co2Max != null) {
@@ -148,6 +150,7 @@ class PlantInfo {
     }
     return '-';
   }
+
   /// EC 범위 문자열
   String get ecRange {
     if (ecMin != null && ecMax != null) {
@@ -359,10 +362,10 @@ class DiaryTimeline {
 }
 
 // ============================================
-// 센서 데이터 관련 모델 (향후 확장용)
+// 센서 데이터 관련 모델 (24시간 추이 그래프용 추가)
 // ============================================
 
-/// 센서 로그 데이터
+/// 기본 센서 로그 데이터 (단건)
 class SensorLog {
   final int id;
   final int deviceId;
@@ -398,8 +401,80 @@ class SensorLog {
   }
 }
 
+/// 24시간 추이 그래프용 데이터 포인트 (신규 추가)
+class SensorPoint {
+  final DateTime timestamp;
+  final double value;
+
+  SensorPoint({required this.timestamp, required this.value});
+
+  factory SensorPoint.fromJson(Map<String, dynamic> json) {
+    return SensorPoint(
+      timestamp: DateTime.parse(json['timestamp']),
+      value: json['value']?.toDouble() ?? 0.0,
+    );
+  }
+}
+
+/// 센서별 데이터 시리즈 (신규 추가)
+class SensorSeries {
+  final String unit;
+  final List<SensorPoint> points;
+
+  SensorSeries({required this.unit, required this.points});
+
+  factory SensorSeries.fromJson(Map<String, dynamic> json) {
+    var list = json['points'] as List? ?? [];
+    List<SensorPoint> pointsList =
+    list.map((i) => SensorPoint.fromJson(i)).toList();
+    return SensorSeries(
+      unit: json['unit'] ?? '',
+      points: pointsList,
+    );
+  }
+
+  // 가장 최근 값 가져오기 (데이터가 없으면 null)
+  double? get latestValue => points.isNotEmpty ? points.last.value : null;
+}
+
+/// 24시간 전체 응답 모델 (신규 추가)
+class SensorData24h {
+  final int deviceId;
+  final DateTime from;
+  final DateTime to;
+  final SensorSeries temperature;
+  final SensorSeries humidity;
+  final SensorSeries illuminance;
+  final SensorSeries co2;
+  final SensorSeries ec;
+
+  SensorData24h({
+    required this.deviceId,
+    required this.from,
+    required this.to,
+    required this.temperature,
+    required this.humidity,
+    required this.illuminance,
+    required this.co2,
+    required this.ec,
+  });
+
+  factory SensorData24h.fromJson(Map<String, dynamic> json) {
+    return SensorData24h(
+      deviceId: json['deviceId'],
+      from: DateTime.parse(json['from']),
+      to: DateTime.parse(json['to']),
+      temperature: SensorSeries.fromJson(json['temperature']),
+      humidity: SensorSeries.fromJson(json['humidity']),
+      illuminance: SensorSeries.fromJson(json['illuminance']),
+      co2: SensorSeries.fromJson(json['co2']),
+      ec: SensorSeries.fromJson(json['ec']),
+    );
+  }
+}
+
 // ============================================
-// 장치 관련 모델 (향후 확장용)
+// 장치 관련 모델
 // ============================================
 
 /// 장치 정보
