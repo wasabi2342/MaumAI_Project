@@ -537,7 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 5. 온도 카드 (실제 데이터 바인딩)
+                // 5. 온도 카드
                 Positioned(
                   left: 16.h,
                   top: 171.h,
@@ -586,13 +586,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 8. Co2 카드
+                // 8. Co2 카드 [수정] 높이 증가 (75 -> 95)
                 Positioned(
                   left: 16.h,
                   top: 342.h,
                   child: _buildSmallSensorCard(
                     width: 176.h,
-                    height: 75.h,
+                    height: 95.h,
                     label: 'Co2',
                     value: '$currentCo2 ppm',
                     status: _getSensorStatus(currentCo2, _selectedPlant?.co2Min, _selectedPlant?.co2Max),
@@ -602,13 +602,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 9. EC 카드
+                // 9. EC 카드 [수정] 높이 증가 (75 -> 95)
                 Positioned(
                   left: 201.h,
                   top: 342.h,
                   child: _buildSmallSensorCard(
                     width: 176.h,
-                    height: 75.h,
+                    height: 95.h,
                     label: 'EC',
                     value: '$currentEc mS/cm',
                     status: _getSensorStatus(currentEc, _selectedPlant?.ecMin, _selectedPlant?.ecMax),
@@ -618,10 +618,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // 10. 24시간 추이 그래프
+                // 10. 24시간 추이 그래프 [수정] top 위치 조정 (429 -> 455)
                 Positioned(
                   left: 16.h,
-                  top: 429.h,
+                  top: 455.h, // 카드가 길어진 만큼 아래로 내림
                   child: Container(
                     width: 361.h,
                     height: 220.h,

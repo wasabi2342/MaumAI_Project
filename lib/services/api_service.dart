@@ -12,7 +12,8 @@ class ApiService {
   // ============================================
 
   /// 서버 베이스 URL 설정
-  /// [중요] 실행 환경에 따라 주소를 변경하세요.
+  /// [중요] 안드로이드 에뮬레이터: 'http://10.0.2.2:8080/api'
+  /// [중요] 실제 기기: PC의 내부 IP 주소 (예: 'http://192.168.0.x:8080/api')
   static const String baseUrl = 'http://192.168.0.3:8080/api';
 
   /// 저장된 사용자 정보 (로그인 후)
@@ -30,12 +31,7 @@ class ApiService {
 
   // 더미 사용자 프로필 데이터
   static Map<String, dynamic> _mockUserProfile = {
-    'id': 999,
-    'nickname': '마스터농부',
-    'email': '1111@naver.com',
-    'job': '개발자',
-    'age': 25,
-    'gender': '남성',
+    'id': 999, 'nickname': '마스터농부', 'email': '1111@naver.com', 'job': '개발자', 'age': 25, 'gender': '남성',
   };
 
   // 더미 식물 리스트
@@ -51,30 +47,6 @@ class ApiService {
       'id': 2, 'name': '방울토마토', 'difficulty': 'MEDIUM',
       'tempMin': 20.0, 'tempMax': 30.0,
       'humidityMin': 60.0, 'humidityMax': 80.0,
-      'lightLevel': 'HIGH',
-    },
-    {
-      'id': 3, 'name': '스위트 바질', 'difficulty': 'EASY',
-      'tempMin': 20.0, 'tempMax': 25.0,
-      'humidityMin': 60.0, 'humidityMax': 80.0,
-      'lightLevel': 'HIGH',
-    },
-    {
-      'id': 4, 'name': '청양고추', 'difficulty': 'MEDIUM',
-      'tempMin': 25.0, 'tempMax': 30.0,
-      'humidityMin': 60.0, 'humidityMax': 70.0,
-      'lightLevel': 'HIGH',
-    },
-    {
-      'id': 5, 'name': '애플민트', 'difficulty': 'EASY',
-      'tempMin': 15.0, 'tempMax': 25.0,
-      'humidityMin': 70.0, 'humidityMax': 90.0,
-      'lightLevel': 'MEDIUM',
-    },
-    {
-      'id': 6, 'name': '설향 딸기', 'difficulty': 'HARD',
-      'tempMin': 17.0, 'tempMax': 23.0,
-      'humidityMin': 50.0, 'humidityMax': 60.0,
       'lightLevel': 'HIGH',
     },
   ];
@@ -104,15 +76,10 @@ class ApiService {
     int? age,
     String? gender,
   }) async {
-    if (isMockMode) {
-      return {
-        'id': 999, 'nickname': nickname, 'email': email, 'job': job, 'age': age, 'gender': gender
-      };
-    }
+    if (isMockMode) return _mockUserProfile;
 
     try {
-      final response = await http
-          .post(
+      final response = await http.post(
         Uri.parse('$baseUrl/users/signup'),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode({
@@ -124,10 +91,9 @@ class ApiService {
           if (age != null) 'age': age,
           if (gender != null) 'gender': gender,
         }),
-      )
-          .timeout(timeoutDuration);
+      ).timeout(timeoutDuration);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         currentUserId = data['id'];
         currentUserEmail = data['email'];
@@ -158,16 +124,14 @@ class ApiService {
     }
 
     try {
-      final response = await http
-          .post(
+      final response = await http.post(
         Uri.parse('$baseUrl/users/login'),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode({
           'email': email,
           'password': password,
         }),
-      )
-          .timeout(timeoutDuration);
+      ).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
@@ -180,39 +144,29 @@ class ApiService {
         throw Exception('이메일 또는 비밀번호가 올바르지 않습니다.');
       }
     } catch (e) {
-      if (e.toString().contains('이메일') || e.toString().contains('비밀번호')) {
-        rethrow;
-      }
       throw Exception('로그인 중 오류가 발생했습니다: $e');
     }
   }
 
   /// 로그아웃
   static Future<void> logout() async {
-    if (isMockMode) {
-      isMockMode = false;
-      currentUserId = null;
-      currentUserEmail = null;
-      currentUserNickname = null;
-      return;
-    }
     try {
-      await http.post(Uri.parse('$baseUrl/users/logout')).timeout(timeoutDuration);
+      if (!isMockMode) {
+        await http.post(Uri.parse('$baseUrl/users/logout')).timeout(timeoutDuration);
+      }
     } catch (e) {
       // ignore
     } finally {
       currentUserId = null;
       currentUserEmail = null;
       currentUserNickname = null;
+      isMockMode = false;
     }
   }
 
   /// 프로필 조회
   static Future<Map<String, dynamic>> getProfile(int userId) async {
-    if (isMockMode) {
-      await Future.delayed(Duration(milliseconds: 500));
-      return _mockUserProfile;
-    }
+    if (isMockMode) return _mockUserProfile;
 
     try {
       final response = await http.get(Uri.parse('$baseUrl/users/$userId')).timeout(timeoutDuration);
@@ -222,9 +176,7 @@ class ApiService {
         throw Exception('프로필 조회 실패');
       }
     } catch (e) {
-      // 서버 연결 실패 시 로컬 테스트를 위해 더미 사용
-      print('서버 연결 오류로 더미 프로필 사용: $e');
-      isMockMode = true;
+      isMockMode = true; // 연결 실패 시 테스트 모드로 전환
       return _mockUserProfile;
     }
   }
@@ -238,7 +190,6 @@ class ApiService {
     String? gender,
   }) async {
     if (isMockMode) {
-      await Future.delayed(Duration(seconds: 1));
       if (nickname != null) _mockUserProfile['nickname'] = nickname;
       if (job != null) _mockUserProfile['job'] = job;
       if (age != null) _mockUserProfile['age'] = age;
@@ -254,13 +205,11 @@ class ApiService {
       if (age != null) requestBody['age'] = age;
       if (gender != null) requestBody['gender'] = gender;
 
-      final response = await http
-          .put(
+      final response = await http.put(
         Uri.parse('$baseUrl/users/$userId/profile'),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode(requestBody),
-      )
-          .timeout(timeoutDuration);
+      ).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
@@ -274,7 +223,7 @@ class ApiService {
     }
   }
 
-  /// 비밀번호 변경
+  /// [복구됨] 비밀번호 변경
   static Future<void> changePassword({
     required int userId,
     required String currentPassword,
@@ -292,11 +241,14 @@ class ApiService {
           'newPasswordConfirm': newPasswordConfirm
         }),
       ).timeout(timeoutDuration);
+
       if (response.statusCode != 200) throw Exception('비밀번호 변경 실패');
-    } catch (e) { throw Exception('비밀번호 변경 오류: $e'); }
+    } catch (e) {
+      throw Exception('비밀번호 변경 오류: $e');
+    }
   }
 
-  /// 회원 탈퇴
+  /// [복구됨] 회원 탈퇴
   static Future<void> deleteUser(int userId) async {
     if (isMockMode) {
       currentUserId = null;
@@ -306,7 +258,9 @@ class ApiService {
     try {
       await http.delete(Uri.parse('$baseUrl/users/$userId')).timeout(timeoutDuration);
       currentUserId = null;
-    } catch (e) { throw Exception('회원탈퇴 오류: $e'); }
+    } catch (e) {
+      throw Exception('회원탈퇴 오류: $e');
+    }
   }
 
   // ============================================
@@ -324,6 +278,7 @@ class ApiService {
     return _mockAllPlants;
   }
 
+  /// [복구됨] 식물 상세 정보 조회
   static Future<Map<String, dynamic>> getPlantDetail(int plantId) async {
     if (isMockMode) {
       return _mockAllPlants.firstWhere((e) => e['id'] == plantId, orElse: () => _mockAllPlants[0]);
@@ -357,7 +312,6 @@ class ApiService {
     DateTime? startedAt,
   }) async {
     if (isMockMode) {
-      await Future.delayed(Duration(seconds: 1));
       final newPlant = {
         'id': _mockUserPlants.length + 100,
         'plantId': plantId,
@@ -374,13 +328,11 @@ class ApiService {
       if (nickname != null) requestBody['nickname'] = nickname;
       if (startedAt != null) requestBody['startedAt'] = startedAt.toIso8601String().split('T')[0];
 
-      final response = await http
-          .post(
+      final response = await http.post(
         Uri.parse('$baseUrl/user-plants?userId=$userId'),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode(requestBody),
-      )
-          .timeout(timeoutDuration);
+      ).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
@@ -393,7 +345,7 @@ class ApiService {
   }
 
   // ============================================
-  // 3. 다이어리 관련 API (누락되었던 메서드 복구)
+  // 3. 다이어리 관련 API
   // ============================================
 
   /// 달력용 다이어리 조회
@@ -402,17 +354,14 @@ class ApiService {
     required int year,
     required int month,
   }) async {
-    if (isMockMode) {
-      return {
-        'userPlantId': userPlantId, 'year': year, 'month': month,
-        'daysSincePlanted': 5, 'photoCount': 0, 'days': []
-      };
-    }
+    if (isMockMode) return {'days': []};
     try {
-      final response = await http.get(Uri.parse('$baseUrl/diary/calendar?userPlantId=$userPlantId&year=$year&month=$month')).timeout(timeoutDuration);
+      final response = await http.get(
+          Uri.parse('$baseUrl/diary/calendar?userPlantId=$userPlantId&year=$year&month=$month')
+      ).timeout(timeoutDuration);
       if(response.statusCode == 200) return jsonDecode(utf8.decode(response.bodyBytes));
     } catch(e) {}
-    return {'userPlantId': userPlantId, 'year': year, 'month': month, 'daysSincePlanted': 5, 'photoCount': 0, 'days': []};
+    return {'days': []};
   }
 
   /// 특정 날짜 다이어리 조회
@@ -423,7 +372,9 @@ class ApiService {
     if (isMockMode) throw Exception('No diary');
     final dateStr = date.toIso8601String().split('T')[0];
     try {
-      final response = await http.get(Uri.parse('$baseUrl/diary?userPlantId=$userPlantId&date=$dateStr')).timeout(timeoutDuration);
+      final response = await http.get(
+          Uri.parse('$baseUrl/diary?userPlantId=$userPlantId&date=$dateStr')
+      ).timeout(timeoutDuration);
       if (response.statusCode == 200) return jsonDecode(utf8.decode(response.bodyBytes));
     } catch (e) {}
     throw Exception('다이어리 조회 실패');
@@ -437,17 +388,25 @@ class ApiService {
     String? imagePath,
   }) async {
     if (isMockMode) return {};
-    var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/diary'));
-    request.fields['userPlantId'] = userPlantId.toString();
-    request.fields['diaryDate'] = diaryDate.toIso8601String().split('T')[0];
-    if (content != null) request.fields['content'] = content;
-    if (imagePath != null && await File(imagePath).exists()) {
-      request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/diary'));
+      request.fields['userPlantId'] = userPlantId.toString();
+      request.fields['diaryDate'] = diaryDate.toIso8601String().split('T')[0];
+      if (content != null) request.fields['content'] = content;
+
+      if (imagePath != null && await File(imagePath).exists()) {
+        request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+      }
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode == 200) return jsonDecode(utf8.decode(response.bodyBytes));
+      else throw Exception('다이어리 생성 실패 (Code: ${response.statusCode})');
+    } catch(e) {
+      throw Exception('다이어리 생성 오류: $e');
     }
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
-    if (response.statusCode == 200) return jsonDecode(utf8.decode(response.bodyBytes));
-    throw Exception('다이어리 생성 실패');
   }
 
   /// [복구됨] 다이어리 수정
@@ -456,19 +415,19 @@ class ApiService {
     String? content,
     String? imagePath,
   }) async {
-    if (isMockMode) {
-      await Future.delayed(Duration(seconds: 1));
-      return {};
-    }
+    if (isMockMode) return {};
 
     try {
       var request = http.MultipartRequest('PUT', Uri.parse('$baseUrl/diary/$diaryId'));
       if (content != null) request.fields['content'] = content;
+
       if (imagePath != null && await File(imagePath).exists()) {
         request.files.add(await http.MultipartFile.fromPath('image', imagePath));
       }
+
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
+
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
@@ -484,7 +443,7 @@ class ApiService {
     if (isMockMode) return;
     try {
       final response = await http.delete(Uri.parse('$baseUrl/diary/$diaryId')).timeout(timeoutDuration);
-      if (response.statusCode != 204) {
+      if (response.statusCode != 204 && response.statusCode != 200) {
         throw Exception('다이어리 삭제 실패');
       }
     } catch (e) {
@@ -494,9 +453,7 @@ class ApiService {
 
   /// [복구됨] 타임라인 조회
   static Future<Map<String, dynamic>> getTimeline(int userPlantId) async {
-    if (isMockMode) {
-      return {'items': []};
-    }
+    if (isMockMode) return {'items': []};
     try {
       final response = await http.get(Uri.parse('$baseUrl/diary/timeline?userPlantId=$userPlantId')).timeout(timeoutDuration);
       if (response.statusCode == 200) {
@@ -510,17 +467,71 @@ class ApiService {
   }
 
   // ============================================
-  // 5. 센서 데이터 관련 API
+  // 4. 질병 진단 API (DiagnosisController)
   // ============================================
+
+  /// 모바일 사진으로 질병 진단 요청
+  static Future<Map<String, dynamic>> requestDiagnosis({
+    required int userPlantId,
+    String? symptomNote,
+    required String imagePath,
+  }) async {
+    if (isMockMode) {
+      await Future.delayed(Duration(seconds: 2));
+      return {
+        'diagnosisResult': '탄저병 의심',
+        'confidence': 0.85,
+        'prescription': '병든 잎을 제거하고 살균제를 도포하세요.'
+      };
+    }
+
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/diagnosis/mobile'));
+      request.fields['userPlantId'] = userPlantId.toString();
+      if (symptomNote != null) request.fields['symptomNote'] = symptomNote;
+
+      File file = File(imagePath);
+      if (await file.exists()) {
+        request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+      } else {
+        throw Exception("이미지 파일이 존재하지 않습니다.");
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        throw Exception('진단 요청 실패: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('진단 API 오류: $e');
+    }
+  }
+
+  // ============================================
+  // 5. IoT 기기 및 센서 API
+  // ============================================
+
+  /// 내 기기 목록 조회
+  static Future<List<dynamic>> getMyDevices(int userId) async {
+    if (isMockMode) {
+      return [{'id': 1, 'macAddress': 'AA:BB:CC:00:11', 'type': 'R_PI'}];
+    }
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/devices/my?userId=$userId')).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      }
+    } catch (e) {}
+    return [];
+  }
 
   /// 특정 기기의 최근 24시간 센서 데이터 조회
   static Future<SensorData24h?> getSensorData24h(int deviceId) async {
-    // 1. Mock 모드면 바로 가짜 데이터 반환
-    if (isMockMode) {
-      return _generateMockSensorData(deviceId);
-    }
+    if (isMockMode) return _generateMockSensorData(deviceId);
 
-    // 2. 서버 연결 시도
     try {
       final response = await http
           .get(Uri.parse('$baseUrl/devices/$deviceId/sensors/last24h'))
@@ -529,17 +540,12 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         return SensorData24h.fromJson(data);
-      } else {
-        print('센서 데이터 조회 실패 (Code: ${response.statusCode}). 더미 데이터 사용.');
-        return _generateMockSensorData(deviceId);
       }
-    } catch (e) {
-      print('센서 데이터 통신 오류: $e. 더미 데이터 사용.');
-      return _generateMockSensorData(deviceId);
-    }
+    } catch (e) {}
+    // 실패 시 Mock 데이터 반환
+    return _generateMockSensorData(deviceId);
   }
 
-  /// [MOCK] 그래프 및 UI 테스트를 위한 가짜 센서 데이터 생성기
   static SensorData24h _generateMockSensorData(int deviceId) {
     DateTime now = DateTime.now();
     DateTime from = now.subtract(Duration(hours: 24));
@@ -547,7 +553,7 @@ class ApiService {
 
     List<SensorPoint> generatePoints(double baseValue, double variance) {
       List<SensorPoint> points = [];
-      for (int i = 0; i < 24 * 6; i++) { // 144 points
+      for (int i = 0; i < 24 * 6; i++) {
         DateTime time = from.add(Duration(minutes: i * 10));
         double sineWave = sin(i * 0.1) * (variance * 0.5);
         double noise = (random.nextDouble() * variance) - (variance * 0.5);

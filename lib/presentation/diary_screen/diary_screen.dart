@@ -300,7 +300,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
     return Scaffold(
       backgroundColor: appTheme.white_A700,
       body: SafeArea(
-        top: false, // [수정] 상단 상태바 영역까지 배경색 확장
+        top: false,
         child: _isLoading
             ? Center(child: CircularProgressIndicator(color: appTheme.teal_400))
             : CustomScrollView(
@@ -340,9 +340,26 @@ class _DiaryScreenState extends State<DiaryScreen> {
               ],
             ),
             SliverToBoxAdapter(
-              child: Column(
+              child: Stack(
+                // [중요] Stack을 사용하여 겹치는 순서 제어
                 children: [
-                  // 1. 상단 성장 정보 섹션 (초록색 배경)
+                  // 1. 하단 달력 섹션 (먼저 그려짐 -> 아래에 깔림)
+                  Padding(
+                    padding: EdgeInsets.only(top: 198.h), // 상단 섹션 높이만큼 아래로 밀기
+                    child: Container(
+                      width: double.infinity,
+                      color: appTheme.white_A700, // 흰색 배경
+                      child: Column(
+                        children: [
+                          SizedBox(height: 30.h),
+                          _buildCalendarSection(),
+                          SizedBox(height: 20.h),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 2. 상단 성장 정보 섹션 (나중에 그려짐 -> 위에 올라옴 + 그림자)
                   Container(
                     width: double.infinity,
                     height: 198.h,
@@ -350,27 +367,14 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       color: appTheme.green_50,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withOpacity(0.05), // 은은한 그림자
                           blurRadius: 20.h,
-                          offset: Offset(0, 10.h),
+                          offset: Offset(0, 10.h), // 아래쪽으로 떨어지는 그림자
                           spreadRadius: 0,
                         ),
                       ],
                     ),
                     child: _buildGrowthInfoSection(),
-                  ),
-
-                  // 2. 하단 달력 섹션 (흰색 배경)
-                  Container(
-                    width: double.infinity,
-                    color: appTheme.white_A700,
-                    child: Column(
-                      children: [
-                        SizedBox(height: 30.h), // 그림자 공간 확보
-                        _buildCalendarSection(),
-                        SizedBox(height: 20.h),
-                      ],
-                    ),
                   ),
                 ],
               ),
