@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_export.dart';
 import '../../widgets/notification_sidebar.dart';
+import '../../widgets/custom_top_app_bar.dart';
+import '../../widgets/custom_bottom_nav_bar.dart';
+import '../../widgets/custom_image_view.dart';
 
 /// ControlScreen - 환경 제어 화면
-///
-/// 수정 사항:
-/// - 상단 '자동모드 카드'의 하단 모서리 둥글기 제거 (직선 처리)
-/// - 상단 초록색 배경이 카드 하단과 정확히 일치
-/// - 상단 섹션과 하단 섹션 경계에 그림자 유지
 class ControlScreen extends StatefulWidget {
   const ControlScreen({Key? key}) : super(key: key);
 
@@ -96,6 +94,7 @@ class _ControlScreenState extends State<ControlScreen>
     return Scaffold(
       backgroundColor: appTheme.white_A700,
       body: SafeArea(
+        top: false, // [수정] 상단 상태바 영역까지 배경색 확장
         child: Center(
           child: Container(
             constraints: BoxConstraints(maxWidth: 393.h),
@@ -241,7 +240,6 @@ class _ControlScreenState extends State<ControlScreen>
         width: double.infinity,
         decoration: BoxDecoration(
           color: const Color(0xFFFDFEFB),
-          // [수정] 하단 모서리 둥글기 제거 (topLeft, topRight만 적용)
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20.h),
             topRight: Radius.circular(20.h),
