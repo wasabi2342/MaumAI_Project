@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'dart:async'; // TimeoutException 처리를 위해 필요 (ApiService에서 발생 시)
+import 'dart:async'; // TimeoutException 처리를 위해 필요
 
 import '../../core/app_export.dart';
 import '../../widgets/custom_button.dart';
@@ -14,8 +14,10 @@ import '../../models/models.dart';
 /// 기능:
 /// - 이메일/비밀번호 입력
 /// - 로그인 API 연동 (ApiService.login)
-/// - 로그인 성공 시 홈 화면(AppRoutes.homeScreen)으로 이동
-/// - 카카오/구글 소셜 로그인 버튼 (UI 구현)
+/// - 로그인 성공 시:
+///   1. 등록된 식물(기기)이 있는지 확인 (getUserPlants)
+///   2. 없으면 -> 기기 선택 화면(DeviceSelectionScreen)으로 이동
+///   3. 있으면 -> 홈 화면(HomeScreen)으로 이동
 class LoginScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -49,7 +51,7 @@ class LoginScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(height: 100.h), // 상단 여백 추가
+                    SizedBox(height: 100.h), // 상단 여백
                     _buildLogoSection(context),
                     SizedBox(height: 48.h),
                     _buildInputFieldsSection(context),
@@ -109,7 +111,7 @@ class LoginScreen extends StatelessWidget {
           fillColor: appTheme.white_A700,
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
-          borderRadius: 20.h, // Figma 디자인: 20
+          borderRadius: 20.h,
           contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
           margin: EdgeInsets.only(top: 2.h),
         ),
@@ -139,7 +141,7 @@ class LoginScreen extends StatelessWidget {
           fillColor: appTheme.white_A700,
           borderColor: appTheme.color66D3D3,
           focusedBorderColor: appTheme.colorFF66D3,
-          borderRadius: 20.h, // Figma 디자인: 20
+          borderRadius: 20.h,
           contentPadding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 8.h),
           margin: EdgeInsets.only(top: 2.h),
         ),
@@ -155,10 +157,10 @@ class LoginScreen extends StatelessWidget {
       backgroundColor: appTheme.teal_400,
       textColor: appTheme.white_A700,
       width: double.infinity,
-      height: 38.h, // Figma 디자인: 38
+      height: 38.h,
       fontSize: 14.fSize,
       fontWeight: FontWeight.w700,
-      borderRadius: 20.h, // Figma 디자인: 20
+      borderRadius: 20.h,
       padding: EdgeInsets.symmetric(horizontal: 30.h, vertical: 10.h),
     );
   }
@@ -211,17 +213,17 @@ class LoginScreen extends StatelessWidget {
           child: CustomButton(
             text: '카카오로 시작하기',
             onPressed: () => _onKakaoLoginPressed(context),
-            backgroundColor: Color(0xFFFFE812), // Figma 디자인: 정확한 카카오 옐로우
+            backgroundColor: Color(0xFFFFE812), // 카카오 옐로우
             textColor: Color(0xFF3B3B3B),
             leftIcon: ImageConstant.imgGroup60,
-            height: 36.h, // Figma 디자인: 36
+            height: 36.h,
             fontSize: 12.fSize,
             fontWeight: FontWeight.w400,
-            borderRadius: 100.h, // Figma 디자인: 100 (완전히 둥근 형태)
+            borderRadius: 100.h,
             padding: EdgeInsets.symmetric(horizontal: 6.h, vertical: 6.h),
           ),
         ),
-        SizedBox(width: 23.h), // Figma 디자인: 23
+        SizedBox(width: 23.h),
         // 구글 로그인 버튼
         Expanded(
           child: CustomButton(
@@ -230,10 +232,10 @@ class LoginScreen extends StatelessWidget {
             backgroundColor: appTheme.white_A700,
             textColor: Color(0xFF3B3B3B),
             leftIcon: ImageConstant.imgGroup61,
-            height: 36.h, // Figma 디자인: 36
+            height: 36.h,
             fontSize: 12.fSize,
             fontWeight: FontWeight.w400,
-            borderRadius: 100.h, // Figma 디자인: 100 (완전히 둥근 형태)
+            borderRadius: 100.h,
             padding: EdgeInsets.symmetric(horizontal: 6.h, vertical: 6.h),
           ),
         ),
@@ -243,18 +245,14 @@ class LoginScreen extends StatelessWidget {
 
   /// 이메일 유효성 검사
   String? _validateEmail(String? value) {
-    // 마스터 계정 테스트를 위해 단순 비어있는지만 체크할 수도 있음
-    // 하지만 형식 유지를 위해 놔둠
     if (value?.isEmpty ?? true) {
       return '이메일을 입력해주세요';
     }
-
     final emailRegex =
     RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (!emailRegex.hasMatch(value!)) {
       return '올바른 이메일 형식을 입력해주세요';
     }
-
     return null;
   }
 
@@ -263,15 +261,13 @@ class LoginScreen extends StatelessWidget {
     if (value?.isEmpty ?? true) {
       return '비밀번호를 입력해주세요';
     }
-
     if (value!.length < 6) {
       return '비밀번호는 6자 이상 입력해주세요';
     }
-
     return null;
   }
 
-  /// 로그인 버튼 클릭 이벤트 (수정됨)
+  /// [수정됨] 로그인 버튼 클릭 이벤트
   void _onLoginPressed(BuildContext context) async {
     // 폼 유효성 검사
     if (_formKey.currentState?.validate() ?? false) {
@@ -287,8 +283,7 @@ class LoginScreen extends StatelessWidget {
       );
 
       try {
-        // ApiService.login 호출
-        // (내부에서 1111@naver.com 체크 후 Mock 데이터 반환)
+        // 1. 로그인 API 호출
         final result = await ApiService.login(
           email: emailController.text.trim(),
           password: passwordController.text,
@@ -296,6 +291,10 @@ class LoginScreen extends StatelessWidget {
 
         // 응답 데이터를 UserProfile 모델로 변환
         final userProfile = UserProfile.fromJson(result);
+
+        // 2. [시나리오 반영] 등록된 기기(식물) 여부 확인
+        // 로그인 직후 사용자의 식물 목록을 조회하여 분기 처리
+        final userPlants = await ApiService.getUserPlants(userProfile.id);
 
         // 로딩 다이얼로그 닫기
         Navigator.of(context).pop();
@@ -309,12 +308,18 @@ class LoginScreen extends StatelessWidget {
           ),
         );
 
-        // 홈 화면으로 이동 (뒤로가기 방지를 위해 pushNamedAndRemoveUntil 사용)
-        Navigator.pushNamedAndRemoveUntil(
-            context, AppRoutes.homeScreen, (route) => false);
+        if (userPlants.isEmpty) {
+          // CASE A: 등록된 기기가 없음 -> 기기 선택 화면으로 이동 (Device Unregistered User)
+          Navigator.pushNamedAndRemoveUntil(
+              context, AppRoutes.deviceSelectionScreen, (route) => false);
+        } else {
+          // CASE B: 등록된 기기가 있음 -> 홈 화면으로 이동 (Existing User)
+          Navigator.pushNamedAndRemoveUntil(
+              context, AppRoutes.homeScreen, (route) => false);
+        }
 
       } catch (e) {
-        // 로딩 다이얼로그 닫기
+        // 로딩 다이얼로그 닫기 (에러 발생 시)
         Navigator.of(context).pop();
 
         // 에러 메시지 변환
@@ -345,9 +350,8 @@ class LoginScreen extends StatelessWidget {
     }
   }
 
-  /// 카카오 로그인 버튼 클릭 이벤트
+  /// 카카오 로그인 버튼 클릭 이벤트 (더미)
   void _onKakaoLoginPressed(BuildContext context) {
-    // 로딩 표시
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -358,14 +362,11 @@ class LoginScreen extends StatelessWidget {
       ),
     );
 
-    // 카카오 로그인 프로세스 시뮬레이션
     Future.delayed(Duration(seconds: 2), () {
-      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-
-      // 성공 메시지 표시
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('카카오 로그인 성공!'),
+          content: Text('카카오 로그인 기능은 준비 중입니다.'),
           backgroundColor: Color(0xFFFFE812),
           duration: Duration(seconds: 2),
         ),
@@ -373,9 +374,8 @@ class LoginScreen extends StatelessWidget {
     });
   }
 
-  /// 구글 로그인 버튼 클릭 이벤트
+  /// 구글 로그인 버튼 클릭 이벤트 (더미)
   void _onGoogleLoginPressed(BuildContext context) {
-    // 로딩 표시
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -386,14 +386,11 @@ class LoginScreen extends StatelessWidget {
       ),
     );
 
-    // 구글 로그인 프로세스 시뮬레이션
     Future.delayed(Duration(seconds: 2), () {
-      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-
-      // 성공 메시지 표시
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('구글 로그인 성공!'),
+          content: Text('구글 로그인 기능은 준비 중입니다.'),
           backgroundColor: appTheme.blue_A200,
           duration: Duration(seconds: 2),
         ),

@@ -297,10 +297,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Scaffold 배경을 흰색으로 설정하여 하단 영역이 흰색이 되도록 함
     return Scaffold(
       backgroundColor: appTheme.white_A700,
       body: SafeArea(
+        top: false, // [수정] 상단 상태바 영역까지 배경색 확장
         child: _isLoading
             ? Center(child: CircularProgressIndicator(color: appTheme.teal_400))
             : CustomScrollView(
@@ -343,13 +343,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
               child: Column(
                 children: [
                   // 1. 상단 성장 정보 섹션 (초록색 배경)
-                  // margin을 제거하여 박스 형태를 해제하고 전체 너비로 설정
                   Container(
                     width: double.infinity,
                     height: 198.h,
                     decoration: BoxDecoration(
                       color: appTheme.green_50,
-                      // 상단 섹션 하단에 그림자 효과 추가
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
@@ -386,25 +384,22 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 성장 정보 섹션 (디자인 유지 + Overflow 해결)
+  /// 성장 정보 섹션
   Widget _buildGrowthInfoSection() {
     final plantName = _diaryCalendarData?.plantName ?? '-';
     final daysSince = _diaryCalendarData?.daysSincePlanted ?? 0;
     final photoCount = _diaryCalendarData?.photoCount ?? 0;
     final firstDate = _diaryCalendarData?.firstPlantedDate ?? DateTime.now();
 
-    // 기존 디자인(Stack)을 유지하되, Margin을 제거하고 내부 요소 정렬 방식 개선
     return Container(
-      height: 235.h, // 기존 높이 유지
+      height: 235.h,
       width: double.infinity,
-      // clipBehavior 제거 (그림자가 잘리지 않도록)
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // 식물 성장 다이어리 라벨 (왼쪽 상단)
           Positioned(
             left: 0,
-            top: 20.h, // 위치 약간 조정
+            top: 20.h,
             child: Container(
               padding: EdgeInsets.only(
                 top: 4.h,
@@ -435,11 +430,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
               ),
             ),
           ),
-          // 흰색 정보 카드 배경
           Positioned(
             left: 16.h,
             right: 16.h,
-            top: 62.h, // 라벨 아래 위치
+            top: 62.h,
             child: Container(
               height: 136.h,
               decoration: ShapeDecoration(
@@ -453,29 +447,24 @@ class _DiaryScreenState extends State<DiaryScreen> {
               ),
             ),
           ),
-          // 정보 아이템들 (Overflow 방지를 위해 Row + Expanded 사용)
           Positioned(
-            left: 16.h, // 흰색 카드 시작점
-            right: 16.h, // 흰색 카드 끝점
-            top: 96.h, // 정보 텍스트 위치
+            left: 16.h,
+            right: 16.h,
+            top: 96.h,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 첫 재배
                 Expanded(child: _buildFirstPlantingInfo(firstDate)),
-                // 재배일수
                 Expanded(child: _buildInfoItem('재배일수', '${daysSince}일')),
-                // 사진수
                 Expanded(child: _buildInfoItem('사진수', '${photoCount}장')),
               ],
             ),
           ),
-          // 타임랩스 버튼 (중앙 하단)
           Positioned(
             left: 0,
             right: 0,
-            top: 170.h, // 흰색 카드 하단에 걸치도록
+            top: 170.h,
             child: Center(
               child: InkWell(
                 onTap: _goToTimelapse,
@@ -563,7 +552,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 '${date.month}/${date.day}',
                 style: TextStyle(
                   color: const Color(0xFF797979),
-                  fontSize: 14.fSize, // 폰트 사이즈 조절
+                  fontSize: 14.fSize,
                   fontFamily: 'Pretendard',
                   fontWeight: FontWeight.w500,
                   height: 1.0,
@@ -617,7 +606,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
       decoration: BoxDecoration(
         color: appTheme.white_A700,
         borderRadius: BorderRadius.circular(20.h),
-        // 달력 자체의 그림자
         boxShadow: [
           BoxShadow(
             color: appTheme.color66D3D3,
@@ -681,7 +669,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 요일 헤더 (Expanded 사용으로 균등 분할)
   Widget _buildWeekDaysHeader() {
     final weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -718,20 +705,18 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 달력 그리드 (Expanded 사용으로 균등 분할)
   Widget _buildCalendarGrid() {
     final firstDayOfMonth =
     DateTime(_currentMonth.year, _currentMonth.month, 1);
     final lastDayOfMonth =
     DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
-    final firstWeekday = firstDayOfMonth.weekday % 7; // 0: 일요일
+    final firstWeekday = firstDayOfMonth.weekday % 7;
     final daysInMonth = lastDayOfMonth.day;
     final lastDayOfPrevMonth =
         DateTime(_currentMonth.year, _currentMonth.month, 0).day;
 
     List<Widget> dayWidgets = [];
 
-    // 이전 달
     for (int i = firstWeekday - 1; i >= 0; i--) {
       dayWidgets.add(Expanded(
         child: _buildDayCell(
@@ -741,7 +726,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
       ));
     }
 
-    // 현재 달
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(_currentMonth.year, _currentMonth.month, day);
       final dateKey = DateFormat('yyyy-MM-dd').format(date);
@@ -758,7 +742,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
       ));
     }
 
-    // 다음 달
     final remainingCells = 42 - dayWidgets.length;
     for (int day = 1; day <= remainingCells; day++) {
       dayWidgets.add(Expanded(

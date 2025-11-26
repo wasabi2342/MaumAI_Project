@@ -4,12 +4,11 @@ import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
 import '../../widgets/custom_top_tab.dart';
 import '../../widgets/notification_sidebar.dart';
+import '../../widgets/custom_top_app_bar.dart'; // Import 추가
+import '../../widgets/custom_bottom_nav_bar.dart'; // Import 추가
+import '../../widgets/custom_image_view.dart'; // Import 추가
 
 /// DiagnosisScreen - AI 식물 진단 화면
-///
-/// 수정 사항:
-/// - 상단 초록색 영역 하단에 그림자(BoxShadow) 추가
-/// - 하단 영역의 배경색을 투명으로 변경하여 그림자가 가려지지 않도록 처리 (Scaffold 배경색이 흰색이라 흰색으로 보임)
 class DiagnosisScreen extends StatefulWidget {
   const DiagnosisScreen({Key? key}) : super(key: key);
 
@@ -130,6 +129,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     return Scaffold(
       backgroundColor: appTheme.white_A700,
       body: SafeArea(
+        top: false, // [수정] 상단 상태바 영역까지 배경색 확장
         child: Center(
           child: Container(
             constraints: BoxConstraints(maxWidth: 393.h),
@@ -200,10 +200,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                       ),
 
                       // 2. 하단 흰색 배경 영역 (건강체크부터 끝까지)
-                      // [수정] color를 제거하여 투명하게 만듦 (상단 그림자가 보이도록)
                       Container(
                         width: double.infinity,
-                        // color: appTheme.white_A700, // <-- 제거됨 (Scaffold 배경이 흰색이므로 투명이어도 흰색으로 보임)
                         child: Column(
                           children: [
                             // 상단 그림자가 보일 수 있도록 충분한 여백
@@ -230,6 +228,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
       ),
     );
   }
+
   Widget _buildTimeAnalysisLabel() {
     return Align(
       alignment: Alignment.centerLeft,
@@ -296,7 +295,8 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.camera_alt, size: 40.h, color: const Color(0xFF32C697)),
+              Icon(Icons.camera_alt,
+                  size: 40.h, color: const Color(0xFF32C697)),
               SizedBox(height: 10.h),
               Text(
                 '사진 촬영',

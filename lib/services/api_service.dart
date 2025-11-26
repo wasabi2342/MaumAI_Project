@@ -2,22 +2,18 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
+import 'dart:math'; // Random 생성을 위해 필요
+import '../models/models.dart';
 
 /// 베란다 농부 API 서비스
-///
-/// 마스터 계정(1111@naver.com) 사용 시 백엔드 없이 더미 데이터로 동작합니다.
 class ApiService {
   // ============================================
   // 설정
   // ============================================
 
   /// 서버 베이스 URL 설정
-  ///
   /// [중요] 실행 환경에 따라 주소를 변경하세요.
-  /// 1. 안드로이드 에뮬레이터: 'http://10.0.2.2:8080/api'
-  /// 2. iOS 시뮬레이터: 'http://localhost:8080/api'
-  /// 3. 실제 기기(폰): PC의 IP 주소 (예: 'http://192.168.0.X:8080/api')
-  static const String baseUrl = 'http://10.0.2.2:8080/api';
+  static const String baseUrl = 'http://223.194.132.61:8080/api';
 
   /// 저장된 사용자 정보 (로그인 후)
   static int? currentUserId;
@@ -25,10 +21,10 @@ class ApiService {
   static String? currentUserNickname;
 
   /// HTTP 타임아웃 설정
-  static const Duration timeoutDuration = Duration(seconds: 30);
+  static const Duration timeoutDuration = Duration(seconds: 10);
 
   // ============================================
-  // [MOCK] 더미 데이터 설정 (백엔드 연결 시 false)
+  // [MOCK] 더미 데이터 설정
   // ============================================
   static bool isMockMode = false;
 
@@ -45,51 +41,38 @@ class ApiService {
   // 더미 식물 리스트
   static final List<Map<String, dynamic>> _mockAllPlants = [
     {
-      'id': 1,
-      'name': '로메인 상추',
-      'difficulty': 'EASY',
+      'id': 1, 'name': '로메인 상추', 'difficulty': 'EASY',
       'tempMin': 15.0, 'tempMax': 25.0,
       'humidityMin': 50.0, 'humidityMax': 70.0,
-      'lightLevel': 'MEDIUM',
-      'ecMin': 1.0, 'ecMax': 2.0,
+      'lightLevel': 'MEDIUM', 'ecMin': 1.0, 'ecMax': 2.0,
       'co2Min': 400.0, 'co2Max': 1000.0,
     },
     {
-      'id': 2,
-      'name': '방울토마토',
-      'difficulty': 'MEDIUM',
+      'id': 2, 'name': '방울토마토', 'difficulty': 'MEDIUM',
       'tempMin': 20.0, 'tempMax': 30.0,
       'humidityMin': 60.0, 'humidityMax': 80.0,
       'lightLevel': 'HIGH',
     },
     {
-      'id': 3,
-      'name': '스위트 바질',
-      'difficulty': 'EASY',
+      'id': 3, 'name': '스위트 바질', 'difficulty': 'EASY',
       'tempMin': 20.0, 'tempMax': 25.0,
       'humidityMin': 60.0, 'humidityMax': 80.0,
       'lightLevel': 'HIGH',
     },
     {
-      'id': 4,
-      'name': '청양고추',
-      'difficulty': 'MEDIUM',
+      'id': 4, 'name': '청양고추', 'difficulty': 'MEDIUM',
       'tempMin': 25.0, 'tempMax': 30.0,
       'humidityMin': 60.0, 'humidityMax': 70.0,
       'lightLevel': 'HIGH',
     },
     {
-      'id': 5,
-      'name': '애플민트',
-      'difficulty': 'EASY',
+      'id': 5, 'name': '애플민트', 'difficulty': 'EASY',
       'tempMin': 15.0, 'tempMax': 25.0,
       'humidityMin': 70.0, 'humidityMax': 90.0,
       'lightLevel': 'MEDIUM',
     },
     {
-      'id': 6,
-      'name': '설향 딸기',
-      'difficulty': 'HARD',
+      'id': 6, 'name': '설향 딸기', 'difficulty': 'HARD',
       'tempMin': 17.0, 'tempMax': 23.0,
       'humidityMin': 50.0, 'humidityMax': 60.0,
       'lightLevel': 'HIGH',
@@ -108,7 +91,7 @@ class ApiService {
   ];
 
   // ============================================
-  // 1. 사용자 관련 API (UserController)
+  // 1. 사용자 관련 API
   // ============================================
 
   /// 회원가입
@@ -121,6 +104,12 @@ class ApiService {
     int? age,
     String? gender,
   }) async {
+    if (isMockMode) {
+      return {
+        'id': 999, 'nickname': nickname, 'email': email, 'job': job, 'age': age, 'gender': gender
+      };
+    }
+
     try {
       final response = await http
           .post(
@@ -148,12 +137,8 @@ class ApiService {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         throw Exception(errorData['message'] ?? '회원가입 실패');
       }
-    } on SocketException {
-      throw Exception('서버에 연결할 수 없습니다.\n네트워크 연결을 확인해주세요.');
-    } on TimeoutException {
-      throw Exception('서버 응답 시간이 초과되었습니다.');
     } catch (e) {
-      throw Exception('회원가입 중 오류가 발생했습니다: ${e.toString()}');
+      throw Exception('회원가입 중 오류가 발생했습니다: $e');
     }
   }
 
@@ -168,9 +153,7 @@ class ApiService {
       currentUserId = _mockUserProfile['id'];
       currentUserEmail = _mockUserProfile['email'];
       currentUserNickname = _mockUserProfile['nickname'];
-
       await Future.delayed(Duration(seconds: 1));
-      print("::: Mock Mode Activated (Master Account) :::");
       return _mockUserProfile;
     }
 
@@ -196,15 +179,11 @@ class ApiService {
       } else {
         throw Exception('이메일 또는 비밀번호가 올바르지 않습니다.');
       }
-    } on SocketException {
-      throw Exception('서버에 연결할 수 없습니다.\n네트워크 연결을 확인해주세요.');
-    } on TimeoutException {
-      throw Exception('서버 응답 시간이 초과되었습니다.');
     } catch (e) {
       if (e.toString().contains('이메일') || e.toString().contains('비밀번호')) {
         rethrow;
       }
-      throw Exception('로그인 중 오류가 발생했습니다: ${e.toString()}');
+      throw Exception('로그인 중 오류가 발생했습니다: $e');
     }
   }
 
@@ -217,11 +196,10 @@ class ApiService {
       currentUserNickname = null;
       return;
     }
-
     try {
       await http.post(Uri.parse('$baseUrl/users/logout')).timeout(timeoutDuration);
     } catch (e) {
-      // ignore error on logout
+      // ignore
     } finally {
       currentUserId = null;
       currentUserEmail = null;
@@ -237,17 +215,17 @@ class ApiService {
     }
 
     try {
-      final response = await http
-          .get(Uri.parse('$baseUrl/users/$userId'))
-          .timeout(timeoutDuration);
-
+      final response = await http.get(Uri.parse('$baseUrl/users/$userId')).timeout(timeoutDuration);
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
         throw Exception('프로필 조회 실패');
       }
     } catch (e) {
-      throw Exception('프로필 조회 중 오류가 발생했습니다: ${e.toString()}');
+      // 서버 연결 실패 시 로컬 테스트를 위해 더미 사용
+      print('서버 연결 오류로 더미 프로필 사용: $e');
+      isMockMode = true;
+      return _mockUserProfile;
     }
   }
 
@@ -265,7 +243,6 @@ class ApiService {
       if (job != null) _mockUserProfile['job'] = job;
       if (age != null) _mockUserProfile['age'] = age;
       if (gender != null) _mockUserProfile['gender'] = gender;
-
       if (nickname != null) currentUserNickname = nickname;
       return _mockUserProfile;
     }
@@ -293,7 +270,7 @@ class ApiService {
         throw Exception('프로필 수정 실패');
       }
     } catch (e) {
-      throw Exception('프로필 수정 중 오류가 발생했습니다: ${e.toString()}');
+      throw Exception('프로필 수정 중 오류: $e');
     }
   }
 
@@ -304,141 +281,75 @@ class ApiService {
     required String newPassword,
     required String newPasswordConfirm,
   }) async {
-    if (isMockMode) {
-      await Future.delayed(Duration(seconds: 1));
-      if (currentPassword != '111111') {
-        throw Exception('현재 비밀번호가 올바르지 않습니다.');
-      }
-      return;
-    }
-
+    if (isMockMode) return;
     try {
-      final response = await http
-          .put(
+      final response = await http.put(
         Uri.parse('$baseUrl/users/$userId/password'),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode({
           'currentPassword': currentPassword,
           'newPassword': newPassword,
-          'newPasswordConfirm': newPasswordConfirm,
+          'newPasswordConfirm': newPasswordConfirm
         }),
-      )
-          .timeout(timeoutDuration);
-
-      if (response.statusCode != 200) {
-        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-        throw Exception(errorData['message'] ?? '비밀번호 변경 실패');
-      }
-    } catch (e) {
-      throw Exception('비밀번호 변경 중 오류가 발생했습니다: ${e.toString()}');
-    }
+      ).timeout(timeoutDuration);
+      if (response.statusCode != 200) throw Exception('비밀번호 변경 실패');
+    } catch (e) { throw Exception('비밀번호 변경 오류: $e'); }
   }
 
-  /// 회원탈퇴
+  /// 회원 탈퇴
   static Future<void> deleteUser(int userId) async {
     if (isMockMode) {
-      await Future.delayed(Duration(milliseconds: 500));
       currentUserId = null;
-      currentUserEmail = null;
-      currentUserNickname = null;
       isMockMode = false;
       return;
     }
-
     try {
-      final response = await http
-          .delete(Uri.parse('$baseUrl/users/$userId'))
-          .timeout(timeoutDuration);
-
-      if (response.statusCode == 204) {
-        currentUserId = null;
-        currentUserEmail = null;
-        currentUserNickname = null;
-      } else {
-        throw Exception('회원탈퇴 실패');
-      }
-    } catch (e) {
-      throw Exception('회원탈퇴 중 오류가 발생했습니다: ${e.toString()}');
-    }
+      await http.delete(Uri.parse('$baseUrl/users/$userId')).timeout(timeoutDuration);
+      currentUserId = null;
+    } catch (e) { throw Exception('회원탈퇴 오류: $e'); }
   }
 
   // ============================================
-  // 2. 식물 정보 관련 API (PlantInfoController)
+  // 2. 식물 정보, 사용자 식물 API
   // ============================================
 
-  /// 전체 식물 리스트 조회
   static Future<List<dynamic>> getAllPlants() async {
-    if (isMockMode) {
-      return _mockAllPlants;
-    }
-
+    if (isMockMode) return _mockAllPlants;
     try {
-      final response = await http
-          .get(Uri.parse('$baseUrl/plants'))
-          .timeout(timeoutDuration);
-
+      final response = await http.get(Uri.parse('$baseUrl/plants')).timeout(timeoutDuration);
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
-      } else {
-        throw Exception('식물 리스트 조회 실패');
       }
-    } catch (e) {
-      throw Exception('식물 리스트 조회 중 오류가 발생했습니다: ${e.toString()}');
-    }
+    } catch (e) {}
+    return _mockAllPlants;
   }
 
-  /// 식물 상세 정보 조회
   static Future<Map<String, dynamic>> getPlantDetail(int plantId) async {
     if (isMockMode) {
-      return _mockAllPlants.firstWhere(
-            (element) => element['id'] == plantId,
-        orElse: () => _mockAllPlants[0],
-      );
+      return _mockAllPlants.firstWhere((e) => e['id'] == plantId, orElse: () => _mockAllPlants[0]);
     }
-
     try {
-      final response = await http
-          .get(Uri.parse('$baseUrl/plants/$plantId'))
-          .timeout(timeoutDuration);
-
+      final response = await http.get(Uri.parse('$baseUrl/plants/$plantId')).timeout(timeoutDuration);
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
-      } else {
-        throw Exception('식물 상세 조회 실패');
       }
-    } catch (e) {
-      throw Exception('식물 상세 조회 중 오류가 발생했습니다: ${e.toString()}');
-    }
+    } catch (e) {}
+    return _mockAllPlants.firstWhere((e) => e['id'] == plantId, orElse: () => _mockAllPlants[0]);
   }
 
-  // ============================================
-  // 3. 사용자 식물 관련 API (UserPlantController)
-  // ============================================
-
-  /// 사용자 식물 목록 조회
   static Future<List<dynamic>> getUserPlants(int userId) async {
-    if (isMockMode) {
-      return _mockUserPlants;
-    }
-
+    if (isMockMode) return _mockUserPlants;
     try {
-      final response = await http
-          .get(Uri.parse('$baseUrl/user-plants?userId=$userId'))
-          .timeout(timeoutDuration);
-
+      final response = await http.get(Uri.parse('$baseUrl/user-plants?userId=$userId')).timeout(timeoutDuration);
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
-      } else {
-        return [];
       }
     } catch (e) {
-      print('사용자 식물 목록 조회 실패: $e');
-      return [];
+      print("서버 연결 실패, 더미 데이터 반환: $e");
     }
+    return _mockUserPlants;
   }
 
-  /// 내 식물 등록
-  /// [수정] 백엔드 DTO 변경으로 deviceId 파라미터가 제거되었습니다.
   static Future<Map<String, dynamic>> createUserPlant({
     required int userId,
     required int plantId,
@@ -447,10 +358,10 @@ class ApiService {
   }) async {
     if (isMockMode) {
       await Future.delayed(Duration(seconds: 1));
-      Map<String, dynamic> newPlant = {
+      final newPlant = {
         'id': _mockUserPlants.length + 100,
         'plantId': plantId,
-        'plantName': _mockAllPlants.firstWhere((e) => e['id'] == plantId, orElse: () => {'name': '알 수 없음'})['name'],
+        'plantName': _mockAllPlants.firstWhere((e) => e['id'] == plantId)['name'],
         'nickname': nickname,
         'startedAt': (startedAt ?? DateTime.now()).toIso8601String(),
       };
@@ -459,16 +370,9 @@ class ApiService {
     }
 
     try {
-      final requestBody = <String, dynamic>{
-        'plantId': plantId,
-      };
-
+      final requestBody = <String, dynamic>{'plantId': plantId};
       if (nickname != null) requestBody['nickname'] = nickname;
-      if (startedAt != null) {
-        requestBody['startedAt'] = startedAt.toIso8601String().split('T')[0];
-      }
-
-      // deviceId는 백엔드 요청에서 제외됨
+      if (startedAt != null) requestBody['startedAt'] = startedAt.toIso8601String().split('T')[0];
 
       final response = await http
           .post(
@@ -481,19 +385,18 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
-        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-        throw Exception(errorData['message'] ?? '식물 등록 실패');
+        throw Exception('식물 등록 실패');
       }
     } catch (e) {
-      throw Exception('식물 등록 중 오류가 발생했습니다: ${e.toString()}');
+      throw Exception('식물 등록 중 오류: $e');
     }
   }
 
   // ============================================
-  // 4. 다이어리 관련 API (DiaryController)
+  // 3. 다이어리 관련 API (누락되었던 메서드 복구)
   // ============================================
 
-  /// 달력 화면용 다이어리 조회
+  /// 달력용 다이어리 조회
   static Future<Map<String, dynamic>> getDiaryCalendar({
     required int userPlantId,
     required int year,
@@ -501,58 +404,29 @@ class ApiService {
   }) async {
     if (isMockMode) {
       return {
-        'userPlantId': userPlantId,
-        'plantName': '로메인 상추',
-        'daysSincePlanted': 5,
-        'photoCount': 0,
-        'year': year,
-        'month': month,
-        'days': [],
+        'userPlantId': userPlantId, 'year': year, 'month': month,
+        'daysSincePlanted': 5, 'photoCount': 0, 'days': []
       };
     }
-
     try {
-      final response = await http
-          .get(
-        Uri.parse('$baseUrl/diary/calendar?userPlantId=$userPlantId&year=$year&month=$month'),
-      )
-          .timeout(timeoutDuration);
-
-      if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes));
-      } else {
-        throw Exception('다이어리 달력 조회 실패');
-      }
-    } catch (e) {
-      throw Exception('다이어리 달력 조회 중 오류가 발생했습니다: ${e.toString()}');
-    }
+      final response = await http.get(Uri.parse('$baseUrl/diary/calendar?userPlantId=$userPlantId&year=$year&month=$month')).timeout(timeoutDuration);
+      if(response.statusCode == 200) return jsonDecode(utf8.decode(response.bodyBytes));
+    } catch(e) {}
+    return {'userPlantId': userPlantId, 'year': year, 'month': month, 'daysSincePlanted': 5, 'photoCount': 0, 'days': []};
   }
 
-  /// 특정 날짜의 다이어리 조회
+  /// 특정 날짜 다이어리 조회
   static Future<Map<String, dynamic>> getDiaryByDate({
     required int userPlantId,
     required DateTime date,
   }) async {
-    if (isMockMode) throw Exception('작성된 다이어리가 없습니다.');
-
+    if (isMockMode) throw Exception('No diary');
+    final dateStr = date.toIso8601String().split('T')[0];
     try {
-      final dateStr = date.toIso8601String().split('T')[0];
-      final response = await http
-          .get(
-        Uri.parse('$baseUrl/diary?userPlantId=$userPlantId&date=$dateStr'),
-      )
-          .timeout(timeoutDuration);
-
-      if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes));
-      } else if (response.statusCode == 404) {
-        throw Exception('해당 날짜의 다이어리가 없습니다.');
-      } else {
-        throw Exception('다이어리 조회 실패');
-      }
-    } catch (e) {
-      throw Exception('다이어리 조회 중 오류가 발생했습니다: ${e.toString()}');
-    }
+      final response = await http.get(Uri.parse('$baseUrl/diary?userPlantId=$userPlantId&date=$dateStr')).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(utf8.decode(response.bodyBytes));
+    } catch (e) {}
+    throw Exception('다이어리 조회 실패');
   }
 
   /// 다이어리 생성
@@ -562,51 +436,21 @@ class ApiService {
     String? content,
     String? imagePath,
   }) async {
-    if (isMockMode) {
-      await Future.delayed(Duration(seconds: 1));
-      return {};
+    if (isMockMode) return {};
+    var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/diary'));
+    request.fields['userPlantId'] = userPlantId.toString();
+    request.fields['diaryDate'] = diaryDate.toIso8601String().split('T')[0];
+    if (content != null) request.fields['content'] = content;
+    if (imagePath != null && await File(imagePath).exists()) {
+      request.files.add(await http.MultipartFile.fromPath('image', imagePath));
     }
-
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/diary'),
-      );
-
-      // 백엔드 @RequestParam 대응
-      request.fields['userPlantId'] = userPlantId.toString();
-      request.fields['diaryDate'] = diaryDate.toIso8601String().split('T')[0];
-      if (content != null && content.isNotEmpty) {
-        request.fields['content'] = content;
-      }
-
-      // 백엔드 @RequestPart 대응 (파일)
-      if (imagePath != null && imagePath.isNotEmpty) {
-        final file = File(imagePath);
-        if (await file.exists()) {
-          request.files.add(
-            await http.MultipartFile.fromPath('image', imagePath),
-          );
-        }
-      }
-
-      final streamedResponse = await request.send().timeout(timeoutDuration);
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes));
-      } else if (response.statusCode == 409) {
-        throw Exception('해당 날짜에는 이미 다이어리가 존재합니다.');
-      } else {
-        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-        throw Exception(errorData['message'] ?? '다이어리 생성 실패');
-      }
-    } catch (e) {
-      throw Exception('다이어리 생성 중 오류가 발생했습니다: ${e.toString()}');
-    }
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode == 200) return jsonDecode(utf8.decode(response.bodyBytes));
+    throw Exception('다이어리 생성 실패');
   }
 
-  /// 다이어리 수정
+  /// [복구됨] 다이어리 수정
   static Future<Map<String, dynamic>> updateDiary({
     required int diaryId,
     String? content,
@@ -618,100 +462,110 @@ class ApiService {
     }
 
     try {
-      var request = http.MultipartRequest(
-        'PUT',
-        Uri.parse('$baseUrl/diary/$diaryId'),
-      );
-
-      if (content != null && content.isNotEmpty) {
-        request.fields['content'] = content;
+      var request = http.MultipartRequest('PUT', Uri.parse('$baseUrl/diary/$diaryId'));
+      if (content != null) request.fields['content'] = content;
+      if (imagePath != null && await File(imagePath).exists()) {
+        request.files.add(await http.MultipartFile.fromPath('image', imagePath));
       }
-
-      if (imagePath != null && imagePath.isNotEmpty) {
-        final file = File(imagePath);
-        if (await file.exists()) {
-          request.files.add(
-            await http.MultipartFile.fromPath('image', imagePath),
-          );
-        }
-      }
-
-      final streamedResponse = await request.send().timeout(timeoutDuration);
-      final response = await http.Response.fromStream(streamedResponse);
-
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
         throw Exception('다이어리 수정 실패');
       }
     } catch (e) {
-      throw Exception('다이어리 수정 중 오류가 발생했습니다: ${e.toString()}');
+      throw Exception('다이어리 수정 오류: $e');
     }
   }
 
-  /// 다이어리 삭제
+  /// [복구됨] 다이어리 삭제
   static Future<void> deleteDiary(int diaryId) async {
     if (isMockMode) return;
-
     try {
-      final response = await http
-          .delete(Uri.parse('$baseUrl/diary/$diaryId'))
-          .timeout(timeoutDuration);
-
+      final response = await http.delete(Uri.parse('$baseUrl/diary/$diaryId')).timeout(timeoutDuration);
       if (response.statusCode != 204) {
         throw Exception('다이어리 삭제 실패');
       }
     } catch (e) {
-      throw Exception('다이어리 삭제 중 오류가 발생했습니다: ${e.toString()}');
+      throw Exception('다이어리 삭제 오류: $e');
     }
   }
 
-  /// 타임라인 조회
+  /// [복구됨] 타임라인 조회
   static Future<Map<String, dynamic>> getTimeline(int userPlantId) async {
-    if (isMockMode) return {'items': []};
-
+    if (isMockMode) {
+      return {'items': []};
+    }
     try {
-      final response = await http
-          .get(
-        Uri.parse('$baseUrl/diary/timeline?userPlantId=$userPlantId'),
-      )
-          .timeout(timeoutDuration);
-
+      final response = await http.get(Uri.parse('$baseUrl/diary/timeline?userPlantId=$userPlantId')).timeout(timeoutDuration);
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
         throw Exception('타임라인 조회 실패');
       }
     } catch (e) {
-      throw Exception('타임라인 조회 중 오류가 발생했습니다: ${e.toString()}');
+      throw Exception('타임라인 조회 오류: $e');
     }
   }
 
   // ============================================
-  // 5. 유틸리티 메서드
+  // 5. 센서 데이터 관련 API
   // ============================================
 
-  /// 현재 로그인 상태 확인
-  static bool get isLoggedIn => currentUserId != null;
+  /// 특정 기기의 최근 24시간 센서 데이터 조회
+  static Future<SensorData24h?> getSensorData24h(int deviceId) async {
+    // 1. Mock 모드면 바로 가짜 데이터 반환
+    if (isMockMode) {
+      return _generateMockSensorData(deviceId);
+    }
 
-  /// 현재 사용자 정보 초기화
-  static void clearCurrentUser() {
-    currentUserId = null;
-    currentUserEmail = null;
-    currentUserNickname = null;
-    isMockMode = false;
-  }
-
-  /// 서버 연결 테스트
-  static Future<bool> testConnection() async {
-    if (isMockMode) return true;
+    // 2. 서버 연결 시도
     try {
       final response = await http
-          .get(Uri.parse(baseUrl.replaceAll('/api', '')))
-          .timeout(Duration(seconds: 5));
-      return response.statusCode == 200 || response.statusCode == 404;
+          .get(Uri.parse('$baseUrl/devices/$deviceId/sensors/last24h'))
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        return SensorData24h.fromJson(data);
+      } else {
+        print('센서 데이터 조회 실패 (Code: ${response.statusCode}). 더미 데이터 사용.');
+        return _generateMockSensorData(deviceId);
+      }
     } catch (e) {
-      return false;
+      print('센서 데이터 통신 오류: $e. 더미 데이터 사용.');
+      return _generateMockSensorData(deviceId);
     }
+  }
+
+  /// [MOCK] 그래프 및 UI 테스트를 위한 가짜 센서 데이터 생성기
+  static SensorData24h _generateMockSensorData(int deviceId) {
+    DateTime now = DateTime.now();
+    DateTime from = now.subtract(Duration(hours: 24));
+    Random random = Random();
+
+    List<SensorPoint> generatePoints(double baseValue, double variance) {
+      List<SensorPoint> points = [];
+      for (int i = 0; i < 24 * 6; i++) { // 144 points
+        DateTime time = from.add(Duration(minutes: i * 10));
+        double sineWave = sin(i * 0.1) * (variance * 0.5);
+        double noise = (random.nextDouble() * variance) - (variance * 0.5);
+        double value = baseValue + sineWave + noise;
+        points.add(SensorPoint(timestamp: time, value: double.parse(value.toStringAsFixed(1))));
+      }
+      return points;
+    }
+
+    return SensorData24h(
+      deviceId: deviceId,
+      from: from,
+      to: now,
+      temperature: SensorSeries(unit: "°C", points: generatePoints(24.0, 2.0)),
+      humidity: SensorSeries(unit: "%", points: generatePoints(60.0, 5.0)),
+      illuminance: SensorSeries(unit: "lux", points: generatePoints(800, 100)),
+      co2: SensorSeries(unit: "ppm", points: generatePoints(450, 20)),
+      ec: SensorSeries(unit: "mS/cm", points: generatePoints(1.2, 0.2)),
+    );
   }
 }
