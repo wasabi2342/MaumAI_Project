@@ -46,79 +46,38 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
     FaqItem(question: '햇빛은 얼마나 필요한가요?'),
   ];
 
-  // 1. 카메라/갤러리 선택 다이얼로그
-  void _showImageSourceDialog() {
-    showDialog(
+  // 1. 카메라/갤러리 선택 (다이어리 화면과 동일한 Bottom Sheet UI 적용)
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.3),
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: AlertDialog(
-          backgroundColor: appTheme.white_A700,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.h),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.camera_alt, color: appTheme.teal_400, size: 48.h),
-              SizedBox(height: 16.h),
-              Text(
-                'AI 식물 진단',
-                style: TextStyle(
-                  color: appTheme.gray_800,
-                  fontSize: 18.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                ),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.h)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.camera_alt, color: appTheme.teal_400),
+                title: Text('카메라로 촬영'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera); // 카메라 실행
+                },
               ),
-              SizedBox(height: 8.h),
-              Text(
-                '촬영 방법을 선택해주세요.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF797979),
-                  fontSize: 14.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w500,
-                ),
+              ListTile(
+                leading: Icon(Icons.photo_library, color: appTheme.teal_400),
+                title: Text('갤러리에서 선택'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery); // 갤러리 실행
+                },
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _pickImage(ImageSource.camera); // 카메라 실행
-              },
-              child: Text(
-                '카메라',
-                style: TextStyle(
-                  color: appTheme.teal_400,
-                  fontSize: 16.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _pickImage(ImageSource.gallery); // 갤러리 실행
-              },
-              child: Text(
-                '갤러리',
-                style: TextStyle(
-                  color: appTheme.teal_400,
-                  fontSize: 16.fSize,
-                  fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -346,7 +305,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
         ],
       ),
       child: InkWell(
-        onTap: _showImageSourceDialog,
+        onTap: _showImageSourceSheet, // [수정] BottomSheet 호출
         // [수정] 이미지가 있으면 이미지를 표시, 없으면 기존 아이콘 표시
         child: _selectedImage != null
             ? Image.file(

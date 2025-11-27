@@ -13,6 +13,7 @@ import '../../widgets/custom_top_app_bar.dart';
 import '../../widgets/custom_bottom_nav_bar.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_form_field.dart';
+import '../../widgets/custom_top_tab.dart'; // [추가] CustomTopTab 임포트
 
 /// DiaryScreen - 식물 성장 다이어리 화면
 class DiaryScreen extends StatefulWidget {
@@ -44,7 +45,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     if (args is int) {
       _userPlantId = args;
     } else if (args is PlantInfo) {
-      // 홈 화면 등에서 PlantInfo 객체로 넘어온 경우 처리 (필요시 id 추출)
       _userPlantId = args.id;
     }
     _fetchMonthData();
@@ -96,7 +96,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     if (dayData != null && dayData.hasDiary) {
       _fetchAndShowDetail(date);
     } else {
-      // 다이어리 작성 다이얼로그 표시하고 결과 대기
       final result = await showDialog(
         context: context,
         barrierColor: Color(0x3FD9D9D9),
@@ -109,7 +108,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
         ),
       );
 
-      // 작성이 완료되어 true가 반환되면 목록 새로고침
       if (result == true) {
         _fetchMonthData();
       }
@@ -187,21 +185,20 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 타임랩스 화면으로 이동 (실제 플레이어 팝업 띄우기)
+  /// 타임랩스 화면으로 이동
   void _goToTimelapse() async {
-    // 로딩 표시
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
+      builder: (context) =>
+          Center(child: CircularProgressIndicator(color: appTheme.teal_400)),
     );
 
     try {
-      // 1. 타임라인 데이터 가져오기
       final timelineData = await ApiService.getTimeline(_userPlantId);
       final timeline = DiaryTimeline.fromJson(timelineData);
 
-      Navigator.pop(context); // 로딩 종료
+      Navigator.pop(context);
 
       if (timeline.items.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -213,10 +210,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
         return;
       }
 
-      // 2. 재생할 프레임 데이터 가공 (URL 및 날짜)
       List<Map<String, String>> frames = [];
-
-      // ApiService의 baseUrl에서 /api 제거 (이미지 경로용)
       String baseUrl = ApiService.baseUrl;
       if (baseUrl.endsWith('/api')) {
         baseUrl = baseUrl.substring(0, baseUrl.length - 4);
@@ -225,25 +219,24 @@ class _DiaryScreenState extends State<DiaryScreen> {
       for (var item in timeline.items) {
         if (item.imageUrl == null || item.imageUrl!.isEmpty) continue;
 
-        // 이미지 전체 URL 만들기
         String path = item.imageUrl!;
-        if (!path.startsWith('http') && !path.startsWith('assets/') && !path.startsWith('file')) {
-          // 상대 경로인 경우 슬래시 처리 및 호스트 주소 결합
+        if (!path.startsWith('http') &&
+            !path.startsWith('assets/') &&
+            !path.startsWith('file')) {
           if (!path.startsWith('/')) path = '/$path';
           path = '$baseUrl$path';
         }
 
-        // 날짜 포맷팅 (YYYY-MM-DD)
         String dateStr = '';
         try {
-          // item.diaryDate가 DateTime인지 String인지 확인 후 처리
           if (item.diaryDate is DateTime) {
-            dateStr = DateFormat('yyyy.MM.dd').format(item.diaryDate as DateTime);
+            dateStr =
+                DateFormat('yyyy.MM.dd').format(item.diaryDate as DateTime);
           } else {
             DateTime d = DateTime.parse(item.diaryDate.toString());
             dateStr = DateFormat('yyyy.MM.dd').format(d);
           }
-        } catch(e) {
+        } catch (e) {
           dateStr = item.diaryDate.toString();
         }
 
@@ -260,15 +253,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
         return;
       }
 
-      // 3. 타임랩스 플레이어 팝업 표시
       showDialog(
         context: context,
-        barrierColor: Colors.black.withOpacity(0.8), // 배경을 어둡게
+        barrierColor: Colors.black.withOpacity(0.8),
         builder: (context) => TimelapsePlayerDialog(frames: frames),
       );
-
     } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context); // 로딩 닫기 시도
+      if (Navigator.canPop(context)) Navigator.pop(context);
       print('타임라인 조회 실패: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('타임라인을 불러오는데 실패했습니다.')),
@@ -365,7 +356,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 성장 정보 섹션
   Widget _buildGrowthInfoSection() {
     final plantName = _diaryCalendarData?.plantName ?? '-';
     final daysSince = _diaryCalendarData?.daysSincePlanted ?? 0;
@@ -580,7 +570,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// 달력 섹션
   Widget _buildCalendarSection() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.h),
@@ -900,8 +889,8 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
         imagePath: _selectedImagePath,
       );
 
-      Navigator.pop(context); // 로딩 닫기
-      Navigator.pop(context, true); // 다이얼로그 닫기
+      Navigator.pop(context);
+      Navigator.pop(context, true);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -910,7 +899,7 @@ class _DiaryCreateDialogState extends State<DiaryCreateDialog> {
         ),
       );
     } catch (e) {
-      Navigator.pop(context); // 로딩 닫기
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('등록 실패: ${e.toString()}')),
       );
@@ -1197,8 +1186,8 @@ class DiaryDetailDialog extends StatelessWidget {
 
     String path = diary.imageUrl!;
 
-    // 로컬 파일 경로 확인
-    if (!path.startsWith('http') && (path.startsWith('/') || path.contains(r'\'))) {
+    if (!path.startsWith('http') &&
+        (path.startsWith('/') || path.contains(r'\'))) {
       File file = File(path);
       if (file.existsSync()) {
         return Image.file(
@@ -1211,7 +1200,6 @@ class DiaryDetailDialog extends StatelessWidget {
       }
     }
 
-    // 서버 경로 URL 변환
     if (!path.startsWith('http') && !path.startsWith('assets/')) {
       String baseUrl = ApiService.baseUrl;
       if (baseUrl.endsWith('/api')) {
@@ -1242,11 +1230,13 @@ class DiaryDetailDialog extends StatelessWidget {
   }
 }
 
-/// [수정] 타임랩스 플레이어 팝업 위젯
+/// [수정됨] 타임랩스 플레이어 팝업
+/// - 닫기 버튼을 팝업창 우측 상단 모서리에 배치
 class TimelapsePlayerDialog extends StatefulWidget {
-  final List<Map<String, String>> frames; // [{'url': '...', 'date': '2023.10.01'}, ...]
+  final List<Map<String, String>> frames;
 
-  const TimelapsePlayerDialog({Key? key, required this.frames}) : super(key: key);
+  const TimelapsePlayerDialog({Key? key, required this.frames})
+      : super(key: key);
 
   @override
   State<TimelapsePlayerDialog> createState() => _TimelapsePlayerDialogState();
@@ -1271,7 +1261,6 @@ class _TimelapsePlayerDialogState extends State<TimelapsePlayerDialog> {
 
   void _startTimer() {
     _timer?.cancel();
-    // 1.5초 간격
     _timer = Timer.periodic(Duration(milliseconds: 1500), (timer) {
       setState(() {
         _currentIndex = (_currentIndex + 1) % widget.frames.length;
@@ -1302,7 +1291,7 @@ class _TimelapsePlayerDialogState extends State<TimelapsePlayerDialog> {
       insetPadding: EdgeInsets.all(20.h),
       child: Container(
         width: 330.h,
-        padding: EdgeInsets.all(20.h),
+        // 전체 패딩 제거 (헤더 영역을 꽉 채우기 위해)
         decoration: BoxDecoration(
           color: appTheme.white_A700,
           borderRadius: BorderRadius.circular(20.h),
@@ -1317,127 +1306,165 @@ class _TimelapsePlayerDialogState extends State<TimelapsePlayerDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 상단 타이틀 및 닫기 버튼
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '타임랩스 재생',
-                  style: TextStyle(
-                    color: appTheme.teal_400,
-                    fontSize: 18.fSize,
-                    fontFamily: 'Pretendard',
-                    fontWeight: FontWeight.w700,
+            // [상단 헤더 영역]
+            SizedBox(
+              height: 50.h,
+              child: Stack(
+                children: [
+                  // 1. 중앙 탭 (상단 정렬)
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: CustomTopTab(
+                      text: '타임랩스 재생',
+                      width: 160.h,
+                      height: 36.h,
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, color: Colors.grey),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            SizedBox(height: 10.h),
-
-            // 이미지 영역
-            Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: 250.h,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(10.h),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  // [수정됨] KeyedSubtree를 사용하여 key 파라미터 에러 해결
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 800),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    child: KeyedSubtree(
-                      key: ValueKey<String>(currentFrame['url']!),
-                      child: CustomImageView(
-                        imagePath: currentFrame['url'],
-                        fit: BoxFit.contain,
-                        placeHolder: ImageConstant.imgPlaceholder,
+                  // 2. 우측 상단 닫기 버튼
+                  Positioned(
+                    right: 9.h,
+                    top: 1.h,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: IconButton(
+                        icon: Icon(Icons.close, color: Colors.grey[700], size: 24.h),
+                        onPressed: () => Navigator.of(context).pop(),
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(),
+                        splashRadius: 20.h,
                       ),
                     ),
                   ),
-                ),
-                // 날짜 오버레이
-                Positioned(
-                  bottom: 10.h,
-                  right: 10.h,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 4.h),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(15.h),
-                    ),
-                    child: Text(
-                      currentFrame['date']!,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.fSize,
-                        fontWeight: FontWeight.w600,
+                ],
+              ),
+            ),
+
+            // [하단 컨텐츠 영역]
+            Padding(
+              padding: EdgeInsets.only(left: 20.h, right: 20.h, bottom: 20.h),
+              child: Column(
+                children: [
+                  SizedBox(height: 10.h),
+                  Stack(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: 250.h,
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(20.h),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 800),
+                          transitionBuilder:
+                              (Widget child, Animation<double> animation) {
+                            return FadeTransition(opacity: animation, child: child);
+                          },
+                          child: KeyedSubtree(
+                            key: ValueKey<String>(currentFrame['url']!),
+                            child: CustomImageView(
+                              imagePath: currentFrame['url'],
+                              fit: BoxFit.contain,
+                              placeHolder: ImageConstant.imgPlaceholder,
+                            ),
+                          ),
+                        ),
                       ),
+                      // 날짜 텍스트 (Glow 효과)
+                      Positioned(
+                        bottom: 20.h,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Text(
+                            currentFrame['date']!,
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 16.fSize,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'Pretendard',
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(0, 0),
+                                  blurRadius: 40.0,
+                                  color: Colors.white.withOpacity(1.0),
+                                ),
+                                Shadow(
+                                  offset: Offset(0, 0),
+                                  blurRadius: 20.0,
+                                  color: Colors.white.withOpacity(1.0),
+                                ),
+                                Shadow(
+                                  offset: Offset(0, 0),
+                                  blurRadius: 10.0,
+                                  color: Colors.white.withOpacity(1.0),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 20.h),
+
+                  // 재생 컨트롤
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.skip_previous,
+                            size: 30.h, color: appTheme.teal_400),
+                        onPressed: () {
+                          _stopTimer();
+                          setState(() {
+                            _currentIndex = (_currentIndex - 1 + widget.frames.length) %
+                                widget.frames.length;
+                          });
+                        },
+                      ),
+                      SizedBox(width: 20.h),
+                      InkWell(
+                        onTap: _togglePlay,
+                        child: Container(
+                          width: 50.h,
+                          height: 50.h,
+                          decoration: BoxDecoration(
+                            color: appTheme.teal_400,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _isPlaying ? Icons.pause : Icons.play_arrow,
+                            color: Colors.white,
+                            size: 30.h,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 20.h),
+                      IconButton(
+                        icon: Icon(Icons.skip_next,
+                            size: 30.h, color: appTheme.teal_400),
+                        onPressed: () {
+                          _stopTimer();
+                          setState(() {
+                            _currentIndex =
+                                (_currentIndex + 1) % widget.frames.length;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10.h),
+                  Text(
+                    '${_currentIndex + 1} / ${widget.frames.length}',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12.fSize,
                     ),
                   ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 20.h),
-
-            // 컨트롤 버튼
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.skip_previous, size: 30.h, color: appTheme.teal_400),
-                  onPressed: () {
-                    _stopTimer();
-                    setState(() {
-                      _currentIndex = (_currentIndex - 1 + widget.frames.length) % widget.frames.length;
-                    });
-                  },
-                ),
-                SizedBox(width: 20.h),
-                InkWell(
-                  onTap: _togglePlay,
-                  child: Container(
-                    width: 50.h,
-                    height: 50.h,
-                    decoration: BoxDecoration(
-                      color: appTheme.teal_400,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _isPlaying ? Icons.pause : Icons.play_arrow,
-                      color: Colors.white,
-                      size: 30.h,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 20.h),
-                IconButton(
-                  icon: Icon(Icons.skip_next, size: 30.h, color: appTheme.teal_400),
-                  onPressed: () {
-                    _stopTimer();
-                    setState(() {
-                      _currentIndex = (_currentIndex + 1) % widget.frames.length;
-                    });
-                  },
-                ),
-              ],
-            ),
-            SizedBox(height: 10.h),
-            Text(
-              '${_currentIndex + 1} / ${widget.frames.length}',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12.fSize,
+                ],
               ),
             ),
           ],
