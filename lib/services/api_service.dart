@@ -1,4 +1,5 @@
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart'; // [추가] MediaType 설정을 위해 필요
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
@@ -14,7 +15,7 @@ class ApiService {
   /// 서버 베이스 URL 설정
   /// [중요] 안드로이드 에뮬레이터: 'http://10.0.2.2:8080/api'
   /// [중요] 실제 기기: PC의 내부 IP 주소 (예: 'http://192.168.0.x:8080/api')
-  static const String baseUrl = 'http://192.168.0.3:8080/api';
+  static const String baseUrl = 'http://10.101.238.204:8080/api';
 
   /// 저장된 사용자 정보 (로그인 후)
   static int? currentUserId;
@@ -22,7 +23,7 @@ class ApiService {
   static String? currentUserNickname;
 
   /// HTTP 타임아웃 설정
-  static const Duration timeoutDuration = Duration(seconds: 10);
+  static const Duration timeoutDuration = Duration(seconds: 30); // AI 분석 고려하여 시간 늘림
 
   // ============================================
   // [MOCK] 더미 데이터 설정
@@ -568,41 +569,72 @@ class ApiService {
   // ============================================
 
   /// 모바일 사진으로 질병 진단 요청
+  /// Backend: POST /api/diagnosis/mobile
+  /// Params: userPlantId (part, json), symptomNote (part, json), image (file)
   static Future<Map<String, dynamic>> requestDiagnosis({
     required int userPlantId,
     String? symptomNote,
     required String imagePath,
   }) async {
     if (isMockMode) {
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(Duration(seconds: 3));
       return {
-        'diagnosisResult': '탄저병 의심',
-        'confidence': 0.85,
-        'prescription': '병든 잎을 제거하고 살균제를 도포하세요.'
+        'healthSummary': '잎의 색이 선명하고 생기가 넘칩니다.',
+        'diseaseStatus': '정상',
+        'diseaseDetails': '특별한 병해충 징후가 보이지 않습니다.',
+        'advice': '현재 환경(햇빛, 물주기)을 잘 유지해주세요.',
+        'harvestPredictionDate': DateTime.now().add(Duration(days: 20)).toIso8601String().split('T')[0],
+        'createdAt': DateTime.now().toIso8601String(),
       };
     }
 
     try {
       var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/diagnosis/mobile'));
-      request.fields['userPlantId'] = userPlantId.toString();
-      if (symptomNote != null) request.fields['symptomNote'] = symptomNote;
 
+      // [중요] 백엔드 @RequestPart가 'application/json' 타입을 요구할 때를 대비하여
+      // fields 대신 files.add(MultipartFile.fromString(... contentType...)) 방식을 사용합니다.
+
+      // 1. userPlantId
+      request.files.add(http.MultipartFile.fromString(
+        'userPlantId',
+        userPlantId.toString(),
+        contentType: MediaType('application', 'json'),
+      ));
+
+      // 2. symptomNote (선택사항)
+      if (symptomNote != null) {
+        request.files.add(http.MultipartFile.fromString(
+          'symptomNote',
+          symptomNote,
+          contentType: MediaType('application', 'json'),
+        ));
+      }
+
+      // 3. image
       File file = File(imagePath);
       if (await file.exists()) {
-        request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+        request.files.add(await http.MultipartFile.fromPath(
+          'image',
+          imagePath,
+          // 이미지 contentType은 http 패키지가 파일 확장자로 자동 추론하지만,
+          // 필요하다면 contentType: MediaType('image', 'jpeg') 등으로 명시 가능
+        ));
       } else {
         throw Exception("이미지 파일이 존재하지 않습니다.");
       }
 
+      print("[API] 진단 요청 전송 중...");
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
+      print("[API] 진단 응답 코드: ${response.statusCode}");
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
-        throw Exception('진단 요청 실패: ${response.body}');
+        throw Exception('진단 요청 실패: ${response.statusCode} / ${utf8.decode(response.bodyBytes)}');
       }
     } catch (e) {
+      print("[API Error] $e");
       throw Exception('진단 API 오류: $e');
     }
   }

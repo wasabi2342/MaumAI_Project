@@ -1,4 +1,4 @@
-import 'dart:async'; // [추가] 타이머 사용을 위해 필요
+import 'dart:async';
 import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -187,7 +187,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
-  /// [수정됨] 타임랩스 화면으로 이동 (실제 플레이어 팝업 띄우기)
+  /// 타임랩스 화면으로 이동 (실제 플레이어 팝업 띄우기)
   void _goToTimelapse() async {
     // 로딩 표시
     showDialog(
@@ -237,8 +237,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
         String dateStr = '';
         try {
           // item.diaryDate가 DateTime인지 String인지 확인 후 처리
-          // (모델 정의에 따라 다르지만 보통 API 응답은 String일 수 있음)
-          // 여기서는 동적으로 처리
           if (item.diaryDate is DateTime) {
             dateStr = DateFormat('yyyy.MM.dd').format(item.diaryDate as DateTime);
           } else {
@@ -1244,7 +1242,7 @@ class DiaryDetailDialog extends StatelessWidget {
   }
 }
 
-/// [신규] 타임랩스 플레이어 팝업 위젯
+/// [수정] 타임랩스 플레이어 팝업 위젯
 class TimelapsePlayerDialog extends StatefulWidget {
   final List<Map<String, String>> frames; // [{'url': '...', 'date': '2023.10.01'}, ...]
 
@@ -1273,7 +1271,8 @@ class _TimelapsePlayerDialogState extends State<TimelapsePlayerDialog> {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(Duration(milliseconds: 500), (timer) {
+    // 1.5초 간격
+    _timer = Timer.periodic(Duration(milliseconds: 1500), (timer) {
       setState(() {
         _currentIndex = (_currentIndex + 1) % widget.frames.length;
       });
@@ -1350,10 +1349,20 @@ class _TimelapsePlayerDialogState extends State<TimelapsePlayerDialog> {
                     borderRadius: BorderRadius.circular(10.h),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: CustomImageView(
-                    imagePath: currentFrame['url'],
-                    fit: BoxFit.contain, // 사진 전체가 보이도록 contain
-                    placeHolder: ImageConstant.imgPlaceholder,
+                  // [수정됨] KeyedSubtree를 사용하여 key 파라미터 에러 해결
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 800),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    child: KeyedSubtree(
+                      key: ValueKey<String>(currentFrame['url']!),
+                      child: CustomImageView(
+                        imagePath: currentFrame['url'],
+                        fit: BoxFit.contain,
+                        placeHolder: ImageConstant.imgPlaceholder,
+                      ),
+                    ),
                   ),
                 ),
                 // 날짜 오버레이
