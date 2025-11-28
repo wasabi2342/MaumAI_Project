@@ -15,7 +15,7 @@ class ApiService {
   /// 서버 베이스 URL 설정
   /// [중요] 안드로이드 에뮬레이터: 'http://10.0.2.2:8080/api'
   /// [중요] 실제 기기: PC의 내부 IP 주소 (예: 'http://192.168.0.x:8080/api')
-  static const String baseUrl = 'http://10.101.238.204:8080/api';
+  static const String baseUrl = 'http://192.168.0.48:8080/api';
 
   /// 저장된 사용자 정보 (로그인 후)
   static int? currentUserId;
