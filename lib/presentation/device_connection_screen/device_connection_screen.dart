@@ -11,7 +11,7 @@ import '../../widgets/custom_top_tab.dart';
 /// - 연결 가이드 표시 (접기/펼치기)
 /// - 7개 페이지 인디케이터 (모두 활성화)
 /// - 이전/다음 네비게이션
-/// - 기기 선택 화면으로 이동
+/// - 식물 선택 화면으로 이동 (수정됨)
 class DeviceConnectionScreen extends StatefulWidget {
   const DeviceConnectionScreen({Key? key}) : super(key: key);
 
@@ -81,7 +81,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
       ),
     );
 
-    // 3초 후 기기 선택 화면으로 이동
+    // 3초 후 식물 선택 화면으로 이동
     Future.delayed(const Duration(seconds: 3), () {
       Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
 
@@ -89,8 +89,8 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
         _isSearching = false;
       });
 
-      // 기기 선택 화면으로 이동
-      Navigator.pushReplacementNamed(context, AppRoutes.deviceSelectionScreen);
+      // [수정] 기기 선택 화면 대신 식물 선택 화면으로 이동
+      Navigator.pushReplacementNamed(context, AppRoutes.plantSelectionScreen);
     });
   }
 

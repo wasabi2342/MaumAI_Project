@@ -1,8 +1,83 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ===================================== -->
+    <!-- 인터넷 및 네트워크 권한 (필수) -->
+    <!-- ===================================== -->
+    <!-- API 서버 통신을 위한 인터넷 권한 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 네트워크 상태 확인 권한 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Wi-Fi 상태 확인 권한 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- ===================================== -->
+    <!-- 카메라 및 사진 권한 -->
+    <!-- ===================================== -->
+    <!-- 다이어리 사진 촬영 및 AI 진단용 카메라 권한 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 카메라 하드웨어 필요 (선택사항) -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
+    <!-- ===================================== -->
+    <!-- 저장소 권한 -->
+    <!-- ===================================== -->
+    <!-- 사진 저장 및 불러오기 권한 -->
+    <!-- Android 13 (API 33) 이상 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Android 10-12 (API 29-32) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+
+    <!-- ===================================== -->
+    <!-- 블루투스 권한 (기기 연결용) -->
+    <!-- ===================================== -->
+    <!-- 스마트 팜 기기 블루투스 연결 -->
+    <!-- Android 12 (API 31) 이상 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Android 11 (API 30) 이하 -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <!-- 블루투스 위치 권한 (Android 10+에서 블루투스 스캔 시 필요) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- 블루투스 하드웨어 기능 -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+
+    <!-- ===================================== -->
+    <!-- 알림 권한 -->
+    <!-- ===================================== -->
+    <!-- 푸시 알림 및 양액 교체 알림용 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 진동 권한 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- ===================================== -->
+    <!-- 기타 권한 -->
+    <!-- ===================================== -->
+    <!-- 부팅 시 자동 시작 (선택사항) -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Wake Lock (백그라운드 작업용, 선택사항) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 포그라운드 서비스 (선택사항) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
     <application
-        android:label="veranda_farmer"
+        android:label="베란다 농부"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -11,26 +86,30 @@
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait">
+
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
                  while the Flutter UI initializes. After that, this theme continues
                  to determine the Window background behind the Flutter UI. -->
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"
+                />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
@@ -40,6 +119,14 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- 카메라 앱 쿼리 -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <!-- 갤러리 앱 쿼리 -->
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
         </intent>
     </queries>
 </manifest>

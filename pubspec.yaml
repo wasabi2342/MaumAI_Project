@@ -30,6 +30,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.1.0
+
+  # 이미지 선택
+  image_picker: ^1.0.4
+
+  # 달력 UI
+  table_calendar: ^3.0.9
+
+  # 로컬 저장소 (로그인 상태)
+  shared_preferences: ^2.2.2
+
+  # 상태 관리 (선택사항)
+  provider: ^6.1.1
+  http_parser: ^4.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -37,7 +51,7 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_svg: ^2.2.2
   intl: ^0.20.2
-
+  fl_chart: ^0.66.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
